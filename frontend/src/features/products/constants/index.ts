@@ -11,7 +11,7 @@
 export const ITEMS_PER_PAGE = 20
 
 /** Debounce delay for search input (milliseconds) */
-export const SEARCH_DEBOUNCE_DELAY = 250
+export const SEARCH_DEBOUNCE_DELAY = 300
 
 /** API request timeout (milliseconds) */
 export const API_TIMEOUT = 5000

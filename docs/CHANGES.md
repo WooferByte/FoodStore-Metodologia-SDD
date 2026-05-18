@@ -1,7 +1,7 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-05-18 (frontend-payment-status-polling archivado)
+> **Última actualización**: 2026-05-18 (frontend-catalog-search-images-refactor archivado)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
 > **Versión mapa**: 3.1 — Estado real sincronizado + inconsistencias marcadas para reparar
 
@@ -334,6 +334,17 @@ Tabla pivote `ProductoIngrediente` con `es_removible`. `PUT/DELETE /api/v1/produ
 **Skills**: `fastapi-python`, `postgres`
 **Dependencias**: `products-crud-core`, `ingredients-crud-allergens`
 **Evidencia**: `openspec/changes/archive/2026-05-13-products-ingredients-association/`
+
+---
+
+### ✅ `frontend-catalog-search-images-refactor`
+Archivado: `2026-05-18-frontend-catalog-search-images-refactor`
+**Evidencia**: `openspec/changes/archive/2026-05-18-frontend-catalog-search-images-refactor/`
+
+3 mejoras al catálogo. (1) Búsqueda client-side debounced: `useDebounce(300ms)` + `useCatalogSearch` con normalización NFD (acentos), `useMemo`, filtra en `nombre`+`descripcion` sin queries adicionales al backend. `SearchInput` controlled puro con `resultCount` + `aria-live`. (2) Imágenes en seed: `backend/scripts/seed.py` actualizado con `imagen_url` (Unsplash) para 15 productos + UPDATE idempotente para filas existentes. (3) Refactor `ProductCard`: fallback gradiente+inicial, `aspect-[4/3]`, `group-hover:scale-105`, badge stock ARIA (`role="status"`, tokens `bg-success/15`), precio `text-2xl`, botones siempre con texto, `py-2.5`. 522/522 vitest, 19 tests nuevos.
+
+**Skills**: `tailwind-design-system`, `ui-design-system`, `vercel-react-best-practices`, `frontend-state-management`
+**Dependencias**: `frontend-products-catalog-ui`
 
 ---
 
@@ -779,6 +790,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 4.8 | 2026-05-18 | frontend-catalog-search-images-refactor archivado. Búsqueda client-side debounced 300ms, imágenes Unsplash en seed, ProductCard refactorizado. 522/522 vitest. PRÓXIMO: BLOQUE 7 backend-admin-users-endpoints. |
 | 4.7 | 2026-05-18 | frontend-payment-status-polling archivado. Hook polling 30s + retry exp + spinner ARIA. 503/503 vitest. BLOQUE 6 completo. PRÓXIMO: BLOQUE 7 — backend-admin-users-endpoints. |
 | 4.6 | 2026-05-18 | frontend-payment-checkout-fixes archivado. 3 bugfixes: teléfono regex, onError mutations, CartDrawer bloqueado en /checkout. PRÓXIMO: frontend-payment-status-polling. |
 | 4.5 | 2026-05-18 | frontend-payment-checkout-ui archivado. CheckoutPage completa + PaymentMethodSelector + MercadoPagoButton + PaymentStatusModal + paymentStore. 491/491 vitest. |

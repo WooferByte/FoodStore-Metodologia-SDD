@@ -1,17 +1,19 @@
 /**
  * ProductCard Component
- * 
+ *
  * Displays a product in thumbnail form with:
- * - Product image with lazy loading
+ * - Product image with lazy loading + gradient fallback with initial letter
  * - Product name and price
- * - Availability badge (In Stock / Out of Stock)
+ * - Availability badge (In Stock / Out of Stock) — semantic tokens + ARIA
  * - "View Details" and "Add to Cart" buttons
- * 
+ *
  * Accessibility:
- * - Alt text on images for screen readers
- * - Semantic HTML buttons
+ * - Descriptive alt text on images
+ * - Fallback container is aria-hidden (decorative)
+ * - Badges have role="status" + aria-label
+ * - Buttons always show text (no hidden-on-mobile pattern)
  * - Keyboard navigable
- * 
+ *
  * @component
  * @example
  * ```tsx
@@ -23,12 +25,30 @@
  * ```
  */
 
+import { useState } from 'react'
 import { ShoppingCart, Eye } from 'lucide-react'
 import type { ProductCardProps } from '@/features/products/types'
 
 /**
+ * Gradient fallback shown when imagen_url is absent or fails to load.
+ * Displays the first character of the product name.
+ */
+function ProductImageFallback({ name }: { name: string }) {
+  return (
+    <div
+      className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary"
+      aria-hidden="true"
+    >
+      <span className="text-5xl font-bold text-primary/60 select-none">
+        {name.charAt(0).toUpperCase()}
+      </span>
+    </div>
+  )
+}
+
+/**
  * ProductCard Component
- * 
+ *
  * @param product - Product data to display
  * @param onViewDetails - Callback when "View Details" is clicked
  * @param onAddToCart - Callback when "Add to Cart" is clicked
@@ -44,39 +64,39 @@ export function ProductCard({
     ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(priceNum)
     : '—'
 
-  /**
-   * Fallback image for broken/missing images
-   */
-  const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = event.currentTarget
-    img.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2216%22 fill=%22%23999%22%3ENo Image%3C/text%3E%3C/svg%3E'
-  }
+  // Start in error state immediately if there is no URL — avoids a broken-image flash
+  const [imgError, setImgError] = useState<boolean>(!product.imagen_url)
 
   return (
     <article
-      className="bg-card rounded-lg shadow-md hover:shadow-xl transition-shadow overflow-hidden flex flex-col"
+      className="group bg-card rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden flex flex-col"
       role="article"
       aria-label={`Product: ${product.nombre}`}
     >
-      {/* Image Container */}
-      <div className="relative overflow-hidden bg-muted h-48">
-        <img
-          src={product.imagen_url}
-          alt={product.nombre}
-          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-          loading="lazy"
-          onError={handleImageError}
-        />
-        
+      {/* Image Container — aspect ratio keeps cards uniform in the grid */}
+      <div className="relative overflow-hidden bg-muted aspect-[4/3] w-full">
+        {imgError ? (
+          <ProductImageFallback name={product.nombre} />
+        ) : (
+          <img
+            src={product.imagen_url}
+            alt={`Foto de ${product.nombre}`}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        )}
+
         {/* Availability Badge */}
         <div className="absolute top-2 right-2">
           <span
-            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+            className={`px-3 py-1 rounded-full text-xs font-semibold border ${
               isAvailable
-                ? 'bg-success/10 text-success'
-                : 'bg-destructive/10 text-destructive'
+                ? 'bg-success/15 text-success border-success/30'
+                : 'bg-destructive/15 text-destructive border-destructive/30'
             }`}
             role="status"
+            aria-label={isAvailable ? 'En stock' : 'Sin stock'}
           >
             {isAvailable ? 'In Stock' : 'Out of Stock'}
           </span>
@@ -85,7 +105,7 @@ export function ProductCard({
         {/* Allergen Indicator */}
         {product.ingredientes.some((ing) => ing.es_alergeno) && (
           <div
-            className="absolute bottom-2 left-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold"
+            className="absolute bottom-2 left-2 bg-warning/15 text-warning-foreground px-2 py-1 rounded text-xs font-semibold"
             role="img"
             aria-label="Contains allergens"
             title="This product contains allergens"
@@ -108,7 +128,7 @@ export function ProductCard({
         </p>
 
         {/* Price */}
-        <p className="text-xl font-bold text-primary mb-4">
+        <p className="text-2xl font-bold text-primary mb-4">
           {priceFormatted}
         </p>
 
@@ -117,22 +137,22 @@ export function ProductCard({
           {/* View Details Button */}
           <button
             onClick={() => onViewDetails(product)}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground rounded-lg font-medium transition-colors"
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground rounded-lg font-medium transition-colors"
             aria-label={`View details for ${product.nombre}`}
           >
-            <Eye size={16} />
-            <span className="hidden sm:inline">Details</span>
+            <Eye size={16} aria-hidden="true" />
+            <span>Details</span>
           </button>
 
           {/* Add to Cart Button */}
           <button
             onClick={() => onAddToCart(product)}
             disabled={!isAvailable}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-success hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-success hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
             aria-label={`Add ${product.nombre} to cart${!isAvailable ? ' (unavailable)' : ''}`}
           >
-            <ShoppingCart size={16} />
-            <span className="hidden sm:inline">Add</span>
+            <ShoppingCart size={16} aria-hidden="true" />
+            <span>Add</span>
           </button>
         </div>
       </div>

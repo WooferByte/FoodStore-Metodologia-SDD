@@ -28,10 +28,6 @@ function buildProductsQueryParams(filters: CatalogFilters, size: number): URLSea
     params.append('categoria_id', filters.categoryIds[0])
   }
 
-  if (filters.search.trim()) {
-    params.append('q', filters.search.trim())
-  }
-
   params.append('page', String(filters.currentPage))
   params.append('size', String(size))
 
@@ -58,7 +54,7 @@ export function useProductsCatalog(
   const queryUrl = `${API_ENDPOINTS.PRODUCTS}?${queryParams.toString()}`
 
   return useQuery<ProductsApiResponse>({
-    queryKey: [QUERY_KEYS.PRODUCTS, filters],
+    queryKey: [QUERY_KEYS.PRODUCTS, { categoryIds: filters.categoryIds, currentPage: filters.currentPage, excludeAllergens: filters.excludeAllergens }],
     queryFn: async () => {
       const response = await axiosInstance.get<ProductsApiResponse>(queryUrl, {
         timeout: API_TIMEOUT,
