@@ -140,7 +140,7 @@ _CACHE_HEADER = "max-age=300, private"
 
 
 @metricas_router.get(
-    "/",
+    "/resumen",
     response_model=MetricasResumenResponse,
     summary="Admin metrics summary",
     description=(

@@ -74,7 +74,12 @@ export default function Router() {
         <Route element={<ProtectedRoute requiredRoles={['ADMIN']} />}>
           <Route path="/admin/usuarios" element={<Admin />} />
           <Route path="/admin/metricas" element={<Admin />} />
-          <Route path="/admin/configuracion" element={<Admin />} />
+          <Route path="/admin/configuracion" element={
+            <div className="p-6 space-y-2">
+              <h1 className="text-2xl font-bold text-foreground">Configuración</h1>
+              <p className="text-muted-foreground">Próximamente disponible.</p>
+            </div>
+          } />
           {/* General admin dashboard */}
           <Route path="/admin" element={<Admin />} />
         </Route>

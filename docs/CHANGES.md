@@ -1,7 +1,7 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-05-18 (admin-dashboard-metrics archivado)
+> **Última actualización**: 2026-05-18 (frontend-admin-dashboard-ui archivado)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
 > **Versión mapa**: 3.1 — Estado real sincronizado + inconsistencias marcadas para reparar
 
@@ -589,11 +589,13 @@ Archivado: `2026-05-18-admin-dashboard-metrics`
 
 ---
 
-### ❌ `frontend-admin-dashboard-ui`
+### ✅ `frontend-admin-dashboard-ui` *(Hecho — archivado 2026-05-18)*
+Archivado: `2026-05-18-frontend-admin-dashboard-ui`
+**Evidencia**: `openspec/changes/archive/2026-05-18-frontend-admin-dashboard-ui/`
 
-KPI cards. Selector rango fechas. LineChart ventas, BarChart top productos, PieChart estados, tabla stock bajo. Refresh cada 5min.
+Dashboard admin completo con métricas. `features/metrics/`: tipos, constantes (CHART_COLORS oklch, GRANULARIDAD_MAP), 4 hooks TanStack Query (staleTime 300s), 5 componentes (`MetricsKPICards`, `DateRangeSelector`, `SalesChart` LineChart, `TopProductsChart` BarChart horizontal, `OrderStateChart` PieChart). `pages/Admin.tsx` — `AdminDashboardPage` con `dateRange` en useState local. E2E: `e2e/admin/dashboard-metrics.spec.ts`. Bugfixes post-testing: endpoint `/resumen` renombrado de `"/"` a `"/resumen"` en backend; `/admin/configuracion` muestra placeholder "Próximamente" (no cargaba `<Admin/>`); `ADMIN_LINKS` — eliminado "Mis Pedidos" duplicado. 545/545 vitest, 0 errores TypeScript.
 
-**Skills**: `frontend-design`, `tailwind-design-system`, `postgres`
+**Skills**: `tailwind-design-system`, `ui-design-system`, `vercel-react-best-practices`, `frontend-state-management`, `dashboard-crud-page`, `testing-e2e-playwright`
 **Dependencias**: `admin-dashboard-metrics`, `frontend-layout-components-shared`
 
 ---
@@ -768,7 +770,7 @@ BLOQUE 6 — Pagos
 BLOQUE 7 — Admin
 ├─ ✅ backend-admin-users-endpoints
 ├─ ✅ admin-dashboard-metrics
-├─ ❌ frontend-admin-dashboard-ui
+├─ ✅ frontend-admin-dashboard-ui
 ├─ ❌ admin-categories-management-ui
 ├─ ❌ admin-products-management-ui
 ├─ ❌ admin-stock-management-ui
@@ -794,6 +796,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.1 | 2026-05-18 | frontend-admin-dashboard-ui archivado. Dashboard completo: 4 hooks TanStack Query, 5 componentes Recharts (KPI/LineChart/BarChart/PieChart), DateRangeSelector. Bugfixes: endpoint /resumen, /admin/configuracion placeholder, ADMIN_LINKS sin duplicado. 545/545 vitest. PRÓXIMO: admin-users-management-ui. |
 | 5.0 | 2026-05-18 | admin-dashboard-metrics archivado. 4 endpoints métricas: resumen (KPIs), ventas (DATE_TRUNC), top-productos (SUM cantidad, excluye CANCELADO), pedidos-por-estado (6 estados always-present). Cache-Control max-age=300. 27/27 pytest. PRÓXIMO: frontend-admin-dashboard-ui. |
 | 4.9 | 2026-05-18 | backend-admin-users-endpoints archivado. GET/PUT/PATCH /api/v1/admin/usuarios. Protección último ADMIN, revocación tokens en cambio de rol/desactivación. 25/25 pytest. PRÓXIMO: admin-users-management-ui o admin-dashboard-metrics. |
 | 4.8 | 2026-05-18 | frontend-catalog-search-images-refactor archivado. Búsqueda client-side debounced 300ms, imágenes Unsplash en seed, ProductCard refactorizado. 522/522 vitest. PRÓXIMO: BLOQUE 7 backend-admin-users-endpoints. |
