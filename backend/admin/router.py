@@ -1,16 +1,24 @@
 """
-Admin users router — endpoints for managing users from the admin panel.
+Admin routers — user management and metrics endpoints.
 
-Endpoints:
+Users router (prefix /admin/usuarios):
   GET  /admin/usuarios          — Paginated list with optional search and role filter
   PUT  /admin/usuarios/{id}     — Update user fields and/or roles
   PATCH /admin/usuarios/{id}/estado — Toggle user active/inactive state
 
-All endpoints require ADMIN role.
-"""
-from typing import Optional
+Metrics router (prefix /admin/metricas):
+  GET  /admin/metricas/         — KPI summary (total_ventas, pedidos_hoy, ...)
+  GET  /admin/metricas/ventas   — Sales by period (dia/semana/mes)
+  GET  /admin/metricas/top-productos — Top 10 products by units sold
+  GET  /admin/metricas/pedidos-por-estado — Orders grouped by all 6 states
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+All endpoints require ADMIN role.
+Cache-Control: max-age=300, private is set on all metrics endpoints.
+"""
+from datetime import date
+from typing import Literal, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.exc import IntegrityError
 
 from admin.schemas import (
@@ -18,8 +26,12 @@ from admin.schemas import (
     AdminToggleEstadoRequest,
     AdminUpdateUsuarioRequest,
     AdminUsuarioResponse,
+    MetricasResumenResponse,
+    PedidosPorEstadoResponse,
+    TopProductosResponse,
+    VentasResponse,
 )
-from admin.service import AdminUsuarioService
+from admin.service import AdminMetricasService, AdminUsuarioService
 from core.models import Usuario
 from infrastructure.dependencies import require_role
 from infrastructure.uow import UnitOfWork, get_uow
@@ -116,3 +128,141 @@ async def toggle_estado(
     async with uow:
         usuario = await AdminUsuarioService.toggle_estado(uow, usuario_id, data.activo)
         return _usuario_to_response(usuario)
+
+
+# ============================================================================
+# Metrics router
+# ============================================================================
+
+metricas_router = APIRouter(prefix="/admin/metricas", tags=["admin-metricas"])
+
+_CACHE_HEADER = "max-age=300, private"
+
+
+@metricas_router.get(
+    "/",
+    response_model=MetricasResumenResponse,
+    summary="Admin metrics summary",
+    description=(
+        "KPI dashboard: total_ventas, pedidos_hoy, productos_activos, usuarios_activos. "
+        "Optional date range filter via `desde` / `hasta` (YYYY-MM-DD). "
+        "Returns 422 if desde > hasta."
+    ),
+)
+async def get_resumen(
+    response: Response,
+    desde: Optional[date] = Query(None, description="Start date (inclusive, YYYY-MM-DD)"),
+    hasta: Optional[date] = Query(None, description="End date (inclusive, YYYY-MM-DD)"),
+    _: Usuario = Depends(require_role(["ADMIN"])),
+    uow: UnitOfWork = Depends(get_uow),
+) -> MetricasResumenResponse:
+    """GET /admin/metricas/ — return KPI summary."""
+    if desde is not None and hasta is not None and desde > hasta:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "type": "https://tools.ietf.org/html/rfc7807",
+                "title": "Invalid Date Range",
+                "status": 422,
+                "detail": "`desde` must be less than or equal to `hasta`.",
+                "instance": "/api/v1/admin/metricas/",
+            },
+        )
+    response.headers["Cache-Control"] = _CACHE_HEADER
+    async with uow:
+        return await AdminMetricasService.get_resumen(uow, desde=desde, hasta=hasta)
+
+
+@metricas_router.get(
+    "/ventas",
+    response_model=VentasResponse,
+    summary="Sales by period",
+    description=(
+        "Aggregated sales totals grouped by `granularidad` (dia/semana/mes). "
+        "Optional date range via `desde` / `hasta`. "
+        "Returns 422 if desde > hasta."
+    ),
+)
+async def get_ventas(
+    response: Response,
+    granularidad: Literal["dia", "semana", "mes"] = Query(
+        "dia", description="Time bucket: dia | semana | mes"
+    ),
+    desde: Optional[date] = Query(None, description="Start date (inclusive, YYYY-MM-DD)"),
+    hasta: Optional[date] = Query(None, description="End date (inclusive, YYYY-MM-DD)"),
+    _: Usuario = Depends(require_role(["ADMIN"])),
+    uow: UnitOfWork = Depends(get_uow),
+) -> VentasResponse:
+    """GET /admin/metricas/ventas — return sales aggregated by period."""
+    if desde is not None and hasta is not None and desde > hasta:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "type": "https://tools.ietf.org/html/rfc7807",
+                "title": "Invalid Date Range",
+                "status": 422,
+                "detail": "`desde` must be less than or equal to `hasta`.",
+                "instance": "/api/v1/admin/metricas/ventas",
+            },
+        )
+    response.headers["Cache-Control"] = _CACHE_HEADER
+    async with uow:
+        items = await AdminMetricasService.get_ventas(
+            uow, granularidad=granularidad, desde=desde, hasta=hasta
+        )
+    return VentasResponse(items=items)
+
+
+@metricas_router.get(
+    "/top-productos",
+    response_model=TopProductosResponse,
+    summary="Top selling products",
+    description=(
+        "Returns up to 10 products ranked by total units sold across non-cancelled orders. "
+        "Optional date range via `desde` / `hasta`."
+    ),
+)
+async def get_top_productos(
+    response: Response,
+    desde: Optional[date] = Query(None, description="Start date (inclusive, YYYY-MM-DD)"),
+    hasta: Optional[date] = Query(None, description="End date (inclusive, YYYY-MM-DD)"),
+    _: Usuario = Depends(require_role(["ADMIN"])),
+    uow: UnitOfWork = Depends(get_uow),
+) -> TopProductosResponse:
+    """GET /admin/metricas/top-productos — return top products by units sold."""
+    if desde is not None and hasta is not None and desde > hasta:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "type": "https://tools.ietf.org/html/rfc7807",
+                "title": "Invalid Date Range",
+                "status": 422,
+                "detail": "`desde` must be less than or equal to `hasta`.",
+                "instance": "/api/v1/admin/metricas/top-productos",
+            },
+        )
+    response.headers["Cache-Control"] = _CACHE_HEADER
+    async with uow:
+        items = await AdminMetricasService.get_top_productos(uow, desde=desde, hasta=hasta)
+    return TopProductosResponse(items=items)
+
+
+@metricas_router.get(
+    "/pedidos-por-estado",
+    response_model=PedidosPorEstadoResponse,
+    summary="Orders by status",
+    description=(
+        "Returns order counts grouped by all 6 statuses. "
+        "Statuses with 0 orders are always included."
+    ),
+)
+async def get_pedidos_por_estado(
+    response: Response,
+    _: Usuario = Depends(require_role(["ADMIN"])),
+    uow: UnitOfWork = Depends(get_uow),
+) -> PedidosPorEstadoResponse:
+    """GET /admin/metricas/pedidos-por-estado — return all order states with counts."""
+    response.headers["Cache-Control"] = _CACHE_HEADER
+    async with uow:
+        items = await AdminMetricasService.get_pedidos_por_estado(uow)
+    return PedidosPorEstadoResponse(items=items)

@@ -1,7 +1,7 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-05-18 (backend-admin-users-endpoints archivado)
+> **Última actualización**: 2026-05-18 (admin-dashboard-metrics archivado)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
 > **Versión mapa**: 3.1 — Estado real sincronizado + inconsistencias marcadas para reparar
 
@@ -578,11 +578,13 @@ Archivado: `2026-05-18-backend-admin-users-endpoints`
 
 ---
 
-### ❌ `admin-dashboard-metrics`
+### ✅ `admin-dashboard-metrics` *(Hecho — archivado 2026-05-18)*
+Archivado: `2026-05-18-admin-dashboard-metrics`
+**Evidencia**: `openspec/changes/archive/2026-05-18-admin-dashboard-metrics/`
 
-`GET /api/v1/admin/metricas/resumen` con filtro fecha. `GET /api/v1/admin/metricas/ventas?granularidad=dia|semana|mes` (DATE_TRUNC). `GET /api/v1/admin/metricas/productos-top`. `GET /api/v1/admin/metricas/pedidos-por-estado`.
+4 endpoints de métricas admin. `GET /api/v1/admin/metricas/resumen` — KPIs: total_ventas, pedidos_hoy, productos_activos, usuarios_activos. Rango opcional. `GET /api/v1/admin/metricas/ventas` — DATE_TRUNC por granularidad (dia/semana/mes). `GET /api/v1/admin/metricas/top-productos` — top 10 por SUM(cantidad), pedidos no cancelados. `GET /api/v1/admin/metricas/pedidos-por-estado` — 6 estados siempre presentes (incluso count=0). `Cache-Control: max-age=300, private` en todos los endpoints. 27/27 pytest.
 
-**Skills**: `fastapi-python`, `postgres`
+**Skills**: `python-fastapi-ddd-skill`, `supabase-postgres-best-practices`, `api-design`, `dashboard-crud-page`, `post-change-verification`
 **Dependencias**: `orders-fsm-backend`, `products-crud-core`
 
 ---
@@ -754,8 +756,8 @@ BLOQUE 5 — Pre-checkout + Pedidos
 ├─ ✅ orders-fsm-backend
 ├─ ✅ orders-api-endpoints
 ├─ ✅ frontend-orders-listing-ui
-├─ ❌ frontend-orders-detail-ui
-└─ ❌ frontend-orders-management-admin
+├─ ✅ frontend-orders-detail-ui
+└─ ✅ frontend-orders-management-admin
 
 BLOQUE 6 — Pagos
 ├─ ✅ payments-mercadopago-integration-backend
@@ -765,7 +767,7 @@ BLOQUE 6 — Pagos
 
 BLOQUE 7 — Admin
 ├─ ✅ backend-admin-users-endpoints
-├─ ❌ admin-dashboard-metrics
+├─ ✅ admin-dashboard-metrics
 ├─ ❌ frontend-admin-dashboard-ui
 ├─ ❌ admin-categories-management-ui
 ├─ ❌ admin-products-management-ui
@@ -792,6 +794,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.0 | 2026-05-18 | admin-dashboard-metrics archivado. 4 endpoints métricas: resumen (KPIs), ventas (DATE_TRUNC), top-productos (SUM cantidad, excluye CANCELADO), pedidos-por-estado (6 estados always-present). Cache-Control max-age=300. 27/27 pytest. PRÓXIMO: frontend-admin-dashboard-ui. |
 | 4.9 | 2026-05-18 | backend-admin-users-endpoints archivado. GET/PUT/PATCH /api/v1/admin/usuarios. Protección último ADMIN, revocación tokens en cambio de rol/desactivación. 25/25 pytest. PRÓXIMO: admin-users-management-ui o admin-dashboard-metrics. |
 | 4.8 | 2026-05-18 | frontend-catalog-search-images-refactor archivado. Búsqueda client-side debounced 300ms, imágenes Unsplash en seed, ProductCard refactorizado. 522/522 vitest. PRÓXIMO: BLOQUE 7 backend-admin-users-endpoints. |
 | 4.7 | 2026-05-18 | frontend-payment-status-polling archivado. Hook polling 30s + retry exp + spinner ARIA. 503/503 vitest. BLOQUE 6 completo. PRÓXIMO: BLOQUE 7 — backend-admin-users-endpoints. |

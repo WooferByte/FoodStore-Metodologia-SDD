@@ -1,16 +1,24 @@
 """
-AdminUsuarioService — admin-only business logic for user management.
+AdminUsuarioService + AdminMetricasService — admin-only business logic.
 
-Responsibilities:
+AdminUsuarioService:
   - List users with pagination, ILIKE search and role filter
   - Update user fields and roles (with last-admin protection and token revocation)
   - Toggle user active/inactive state (with last-admin protection and token revocation)
+
+AdminMetricasService:
+  - Dashboard KPI summary (resumen)
+  - Sales by period (ventas)
+  - Top-selling products (top_productos)
+  - Orders by status (pedidos_por_estado)
 
 Architecture note:
   Service layer owns all business rules. No session.commit() here — the caller
   wraps calls inside ``async with uow:`` which auto-commits on exit.
 """
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
+from typing import List, Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy import delete, func, select, update
@@ -346,3 +354,63 @@ class AdminUsuarioService:
         )
         reload_result = await uow.session.execute(reload_stmt)
         return reload_result.scalar_one()
+
+
+class AdminMetricasService:
+    """
+    Admin service for dashboard metrics.
+
+    All methods receive an open UnitOfWork and delegate directly to
+    AdminMetricasRepository via uow.session. The caller is responsible for
+    wrapping calls inside ``async with uow:``.
+
+    No business logic here beyond delegation — all aggregation is in the repo.
+    """
+
+    @staticmethod
+    async def get_resumen(
+        uow: UnitOfWork,
+        desde: Optional[date] = None,
+        hasta: Optional[date] = None,
+    ) -> "MetricasResumenResponse":  # noqa: F821
+        """Return KPI summary (total_ventas, pedidos_hoy, productos_activos, usuarios_activos)."""
+        from admin.repository import AdminMetricasRepository
+        from admin.schemas import MetricasResumenResponse  # noqa: F401
+
+        return await AdminMetricasRepository.get_resumen(uow.session, desde=desde, hasta=hasta)
+
+    @staticmethod
+    async def get_ventas(
+        uow: UnitOfWork,
+        granularidad: str,
+        desde: Optional[date] = None,
+        hasta: Optional[date] = None,
+    ) -> "List[VentasPorPeriodoItem]":  # noqa: F821
+        """Return sales aggregated by time bucket."""
+        from admin.repository import AdminMetricasRepository
+
+        return await AdminMetricasRepository.get_ventas_por_periodo(
+            uow.session, granularidad=granularidad, desde=desde, hasta=hasta
+        )
+
+    @staticmethod
+    async def get_top_productos(
+        uow: UnitOfWork,
+        desde: Optional[date] = None,
+        hasta: Optional[date] = None,
+    ) -> "List[TopProductoItem]":  # noqa: F821
+        """Return top-10 products by units sold (excluding CANCELADO orders)."""
+        from admin.repository import AdminMetricasRepository
+
+        return await AdminMetricasRepository.get_top_productos(
+            uow.session, desde=desde, hasta=hasta
+        )
+
+    @staticmethod
+    async def get_pedidos_por_estado(
+        uow: UnitOfWork,
+    ) -> "List[PedidosPorEstadoItem]":  # noqa: F821
+        """Return order counts per status — always returns all 6 states."""
+        from admin.repository import AdminMetricasRepository
+
+        return await AdminMetricasRepository.get_pedidos_por_estado(uow.session)
