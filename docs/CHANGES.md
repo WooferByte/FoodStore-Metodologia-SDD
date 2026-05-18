@@ -1,7 +1,7 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-05-18 (frontend-catalog-search-images-refactor archivado)
+> **Última actualización**: 2026-05-18 (backend-admin-users-endpoints archivado)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
 > **Versión mapa**: 3.1 — Estado real sincronizado + inconsistencias marcadas para reparar
 
@@ -567,11 +567,13 @@ Hook `usePaymentStatusPolling(pedidoId)` — polling cada 30s a `GET /api/v1/pag
 
 ## EPIC 12 — Panel de Administración
 
-### ❌ `backend-admin-users-endpoints` *(NUEVO en v3.0 — gap INC anterior)*
+### ✅ `backend-admin-users-endpoints` *(Hecho — archivado 2026-05-18)*
+Archivado: `2026-05-18-backend-admin-users-endpoints`
+**Evidencia**: `openspec/changes/archive/2026-05-18-backend-admin-users-endpoints/`
 
-`GET /api/v1/admin/usuarios` — paginación, búsqueda, filtro por rol. `PUT /api/v1/admin/usuarios/:id` — editar nombre/roles, invalida refresh tokens al cambiar rol. `PATCH /api/v1/admin/usuarios/:id/estado` — campo `activo`, al desactivar revoca tokens.
+3 endpoints admin de gestión de usuarios. `GET /api/v1/admin/usuarios` — paginación (limit/offset/total), búsqueda ILIKE en email+nombre, filtro por rol. `PUT /api/v1/admin/usuarios/:id` — editar nombre/apellido/email/telefono/roles. Cambio de roles → revoca todos los refresh tokens (bulk UPDATE sin N+1). Protección último ADMIN → 409. `PATCH /api/v1/admin/usuarios/:id/estado` — toggle activo. Desactivar → revoca todos los refresh tokens. Protección último ADMIN → 409 (filtra por activo=True al contar). Módulo `backend/admin/` separado de `backend/usuarios/`. 25/25 pytest.
 
-**Skills**: `fastapi-python`, `postgres`
+**Skills**: `python-fastapi-ddd-skill`, `supabase-postgres-best-practices`, `api-design`, `jwt-security`, `post-change-verification`
 **Dependencias**: `rbac-roles-management`
 
 ---
@@ -762,7 +764,7 @@ BLOQUE 6 — Pagos
 └─ ✅ frontend-payment-status-polling
 
 BLOQUE 7 — Admin
-├─ ❌ backend-admin-users-endpoints
+├─ ✅ backend-admin-users-endpoints
 ├─ ❌ admin-dashboard-metrics
 ├─ ❌ frontend-admin-dashboard-ui
 ├─ ❌ admin-categories-management-ui
@@ -790,6 +792,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 4.9 | 2026-05-18 | backend-admin-users-endpoints archivado. GET/PUT/PATCH /api/v1/admin/usuarios. Protección último ADMIN, revocación tokens en cambio de rol/desactivación. 25/25 pytest. PRÓXIMO: admin-users-management-ui o admin-dashboard-metrics. |
 | 4.8 | 2026-05-18 | frontend-catalog-search-images-refactor archivado. Búsqueda client-side debounced 300ms, imágenes Unsplash en seed, ProductCard refactorizado. 522/522 vitest. PRÓXIMO: BLOQUE 7 backend-admin-users-endpoints. |
 | 4.7 | 2026-05-18 | frontend-payment-status-polling archivado. Hook polling 30s + retry exp + spinner ARIA. 503/503 vitest. BLOQUE 6 completo. PRÓXIMO: BLOQUE 7 — backend-admin-users-endpoints. |
 | 4.6 | 2026-05-18 | frontend-payment-checkout-fixes archivado. 3 bugfixes: teléfono regex, onError mutations, CartDrawer bloqueado en /checkout. PRÓXIMO: frontend-payment-status-polling. |
