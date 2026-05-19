@@ -10,7 +10,7 @@
  * All colors via semantic @theme tokens — zero hardcoded colors.
  */
 
-import type { OrderDetailItem } from '@/features/orders/types'
+import type { OrderDetailItem } from '@\/entities/order'
 
 export interface OrderItemSnapshotProps {
   item: OrderDetailItem

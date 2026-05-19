@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
-import { useAuthStore } from '../../store/authStore'
-import { useUIStore } from '../../store/uiStore'
-import type { UIStore } from '../../store/types'
+import { useAuthStore } from '@/store/authStore'
+import { useUIStore } from '@/store/uiStore'
+import type { UIStore } from '@/store/types'
 import type { ApiError } from '../types/api'
 
 // ---------------------------------------------------------------------------

@@ -14,7 +14,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { OrderCard } from '../OrderCard'
-import type { Order } from '@/features/orders/types'
+import type { Order } from '@\/entities/order'
 
 const mockOrder: Order = {
   id: 42,

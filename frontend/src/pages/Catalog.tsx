@@ -15,7 +15,7 @@
  * @component
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useCartStore } from '@/store/cartStore'
 import { useUIStore } from '@/store/uiStore'
 import {
@@ -30,7 +30,7 @@ import {
   AppliedFilters,
 } from '@/features/products/components'
 import { ITEMS_PER_PAGE } from '@/features/products/constants'
-import type { Product, CatalogFilters } from '@/features/products/types'
+import type { Product, CatalogFilters } from '@\/entities/product'
 
 /**
  * CatalogPage Component
@@ -131,19 +131,19 @@ export default function CatalogPage() {
 
   // ===== Modal Handlers =====
 
-  const handleViewDetails = (product: Product) => {
+  const handleViewDetails = useCallback((product: Product) => {
     setSelectedProduct(product)
     setIsDetailOpen(true)
-  }
+  }, [])
 
-  const handleCloseDetail = () => {
+  const handleCloseDetail = useCallback(() => {
     setIsDetailOpen(false)
     setSelectedProduct(null)
-  }
+  }, [])
 
   // ===== Cart Integration =====
 
-  const handleAddToCart = (product: Product, quantity: number) => {
+  const handleAddToCart = useCallback((product: Product, quantity: number) => {
     try {
       addToCart({
         productId: product.id,
@@ -169,12 +169,11 @@ export default function CatalogPage() {
         duration: 3000,
       })
     }
-  }
+  }, [addToCart, addToast, handleCloseDetail])
 
-  const handleAddToCartFromCard = (product: Product) => {
-    // Quick add with quantity 1
+  const handleAddToCartFromCard = useCallback((product: Product) => {
     handleAddToCart(product, 1)
-  }
+  }, [handleAddToCart])
 
   // ===== Render =====
 

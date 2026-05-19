@@ -23,7 +23,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { X, AlertTriangle, Plus, Minus } from 'lucide-react'
 import { apiClient } from '@/shared/api/axios'
-import type { Product } from '@/features/products/types'
+import type { Product } from '@\/entities/product'
 import { MIN_QUANTITY, MAX_QUANTITY } from '@/features/products/constants'
 
 interface ProductDetailProps {

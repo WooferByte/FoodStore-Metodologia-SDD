@@ -9,7 +9,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/shared/api/axios'
 import { useUIStore } from '@/store/uiStore'
-import type { DireccionUpdate, DireccionResponse } from '@/features/addresses/types'
+import type { DireccionUpdate, DireccionResponse } from '@\/entities/address'
 
 interface UpdateAddressVariables {
   id: number

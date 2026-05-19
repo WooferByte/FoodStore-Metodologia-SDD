@@ -23,17 +23,11 @@
  * ```
  */
 
+import { memo } from 'react'
 import { ShoppingCart, Eye } from 'lucide-react'
-import type { ProductCardProps } from '@/features/products/types'
+import type { ProductCardProps } from '@/entities/product'
 
-/**
- * ProductCard Component
- * 
- * @param product - Product data to display
- * @param onViewDetails - Callback when "View Details" is clicked
- * @param onAddToCart - Callback when "Add to Cart" is clicked
- */
-export function ProductCard({
+export const ProductCard = memo(function ProductCard({
   product,
   onViewDetails,
   onAddToCart,
@@ -138,6 +132,6 @@ export function ProductCard({
       </div>
     </article>
   )
-}
+})
 
 export type { ProductCardProps }

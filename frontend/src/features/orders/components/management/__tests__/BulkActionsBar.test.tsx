@@ -16,7 +16,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BulkActionsBar } from '../BulkActionsBar'
 import { useOrdersManagementStore } from '@/features/orders/store/ordersManagementStore'
-import type { Order } from '@/features/orders/types'
+import type { Order } from '@\/entities/order'
 
 // Mock useBulkOrderActions
 vi.mock('@/features/orders/hooks/useBulkOrderActions', () => ({

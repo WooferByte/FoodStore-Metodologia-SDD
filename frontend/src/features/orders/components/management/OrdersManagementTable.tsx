@@ -26,7 +26,7 @@ import { useNavigate } from 'react-router-dom'
 import { OrdersManagementRow } from '@/features/orders/components/management/OrdersManagementRow'
 import { OrderCard } from '@/features/orders/components/OrderCard'
 import { useOrdersManagementStore } from '@/features/orders/store/ordersManagementStore'
-import type { Order } from '@/features/orders/types'
+import type { Order } from '@\/entities/order'
 
 export interface OrdersManagementTableProps {
   orders: Order[]

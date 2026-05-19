@@ -14,7 +14,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { CartItemRow } from '@/features/cart/components/CartItemRow'
-import type { CartItem } from '@/store'
+import type { CartItem } from '@/entities/cart-item'
 
 const mockItem: CartItem = {
   productId: 'pizza-001',

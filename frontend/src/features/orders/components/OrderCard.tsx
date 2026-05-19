@@ -11,10 +11,11 @@
  * Mobile-first: readable at 375px viewport without horizontal overflow.
  */
 
+import { memo } from 'react'
 import { Link } from 'react-router-dom'
 import { cn } from '@/shared/lib/utils'
 import { OrderStatusBadge } from '@/features/orders/components/OrderStatusBadge'
-import type { Order } from '@/features/orders/types'
+import type { Order } from '@/entities/order'
 
 export interface OrderCardProps {
   order: Order
@@ -45,7 +46,7 @@ function formatARS(amount: number): string {
   }).format(amount)
 }
 
-export function OrderCard({ order, mode, onViewDetail, className }: OrderCardProps) {
+export const OrderCard = memo(function OrderCard({ order, mode, onViewDetail, className }: OrderCardProps) {
   if (mode === 'client') {
     return (
       <article
@@ -153,4 +154,4 @@ export function OrderCard({ order, mode, onViewDetail, className }: OrderCardPro
       </Link>
     </div>
   )
-}
+})

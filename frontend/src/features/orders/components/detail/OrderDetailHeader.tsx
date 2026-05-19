@@ -9,7 +9,7 @@
  */
 
 import { OrderStatusBadge } from '@/features/orders/components/OrderStatusBadge'
-import type { OrderDetail } from '@/features/orders/types'
+import type { OrderDetail } from '@\/entities/order'
 
 export interface OrderDetailHeaderProps {
   order: OrderDetail

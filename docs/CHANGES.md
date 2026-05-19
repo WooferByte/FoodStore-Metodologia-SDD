@@ -1,7 +1,7 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-05-19 (fix-build-critical archivado)
+> **Última actualización**: 2026-05-19 (refactor-fsd-performance archivado)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
 > **Versión mapa**: 5.0 — Estado real sincronizado
 
@@ -779,6 +779,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.1 | 2026-05-19 | refactor-fsd-performance archivado. entities/ poblada (product, order, address, cart-item). widgets/ con Navbar/Footer/Sidebar. React.memo + useCallback en 4 componentes. Efectos corregidos (CheckoutPage, SearchInput). 452/452 tests. PRÓXIMO: backend-admin-users-endpoints (BLOQUE 7). |
 | 5.0 | 2026-05-19 | fix-build-critical archivado. Creado src/shared/lib/utils.ts con cn() — 14 imports desbloqueados. build roto reparado. PRÓXIMO: refactor-fsd-performance (FSD + memoización). |
 | 4.7 | 2026-05-18 | frontend-payment-status-polling archivado. Hook polling 30s + retry exp + spinner ARIA. 503/503 vitest. BLOQUE 6 completo. PRÓXIMO: BLOQUE 7 — backend-admin-users-endpoints. |
 | 4.6 | 2026-05-18 | frontend-payment-checkout-fixes archivado. 3 bugfixes: teléfono regex, onError mutations, CartDrawer bloqueado en /checkout. PRÓXIMO: frontend-payment-status-polling. |

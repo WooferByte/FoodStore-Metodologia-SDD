@@ -15,7 +15,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useNavLinks } from '../useNavLinks'
-import type { AuthStore } from '../../../store/types'
+import type { AuthStore } from '@/store/types'
 
 // ---------------------------------------------------------------------------
 // Mock the entire authStore module — we only need to control two selectors:

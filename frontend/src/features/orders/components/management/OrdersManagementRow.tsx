@@ -23,7 +23,7 @@ import { Button } from '@/shared/components/ui/Button'
 import { OrderStatusBadge } from '@/features/orders/components/OrderStatusBadge'
 import { useOrdersManagementStore } from '@/features/orders/store/ordersManagementStore'
 import { isTerminalState } from '@/features/orders/constants/orderTransitions'
-import type { Order } from '@/features/orders/types'
+import type { Order } from '@\/entities/order'
 
 export interface OrdersManagementRowProps {
   order: Order

@@ -21,8 +21,8 @@
 
 import { useState, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useAuthStore } from '../../store/authStore'
-import { useCartStore } from '../../store/cartStore'
+import { useAuthStore } from '@/store/authStore'
+import { useCartStore } from '@/store/cartStore'
 import { logoutUser } from '../api/authApi'
 
 export interface UseLogoutReturn {

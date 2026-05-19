@@ -124,7 +124,7 @@ export default function CheckoutPage() {
   // ---------------------------------------------------------------------------
   useEffect(() => {
     setCartDrawerOpen(false)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [setCartDrawerOpen])
 
   // ---------------------------------------------------------------------------
   // 6.6 — Detect query params from MercadoPago redirect
@@ -152,7 +152,7 @@ export default function CheckoutPage() {
       }
       setStatus('pending')
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchParams, setPedidoId, setStatus])
 
   // ---------------------------------------------------------------------------
   // Validate cart on mount (if no payment result from query params)
@@ -169,7 +169,8 @@ export default function CheckoutPage() {
     }
 
     validateCart()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Open validation modal when issues detected
   useEffect(() => {

@@ -11,7 +11,7 @@
  */
 
 import { ProductCard } from './ProductCard'
-import type { Product } from '@/features/products/types'
+import type { Product } from '@\/entities/product'
 
 interface ProductGridProps {
   products: Product[] | undefined

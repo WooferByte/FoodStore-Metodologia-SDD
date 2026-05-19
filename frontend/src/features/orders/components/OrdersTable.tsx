@@ -14,7 +14,7 @@
 import { OrdersSkeleton } from '@/features/orders/components/OrdersSkeleton'
 import { OrderStatusBadge } from '@/features/orders/components/OrderStatusBadge'
 import { Button } from '@/shared/components/ui/Button'
-import type { Order } from '@/features/orders/types'
+import type { Order } from '@\/entities/order'
 
 export interface OrdersTableProps {
   orders: Order[]

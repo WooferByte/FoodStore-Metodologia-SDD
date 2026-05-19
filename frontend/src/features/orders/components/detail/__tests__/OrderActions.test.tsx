@@ -19,7 +19,7 @@ import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { OrderActions } from '../OrderActions'
 import { useOrderDetailStore } from '@/features/orders/store/orderDetailStore'
-import type { OrderDetail } from '@/features/orders/types'
+import type { OrderDetail } from '@\/entities/order'
 
 function makeOrder(estadoId: number): OrderDetail {
   return {

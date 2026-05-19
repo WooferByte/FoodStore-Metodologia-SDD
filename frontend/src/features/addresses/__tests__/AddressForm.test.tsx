@@ -15,7 +15,7 @@ import '@testing-library/jest-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { AddressForm } from '@/features/addresses/components/AddressForm'
-import type { DireccionCreate, DireccionResponse } from '@/features/addresses/types'
+import type { DireccionCreate, DireccionResponse } from '@\/entities/address'
 
 // ── Fixture ───────────────────────────────────────────────────────────────────
 

@@ -28,7 +28,7 @@ import { SearchInput } from './SearchInput'
 import { CategoryFilter } from './CategoryFilter'
 import { AllergenFilter } from './AllergenFilter'
 import { useAllergensFilter } from '@/features/products/hooks'
-import type { Product } from '@/features/products/types'
+import type { Product } from '@\/entities/product'
 
 interface FilterBarProps {
   search: string

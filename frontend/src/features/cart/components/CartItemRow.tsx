@@ -15,8 +15,9 @@
  * Styling: Only semantic Tailwind v4 tokens — zero raw colors.
  */
 
+import { memo } from 'react'
 import { Trash2 } from 'lucide-react'
-import type { CartItem } from '@/store'
+import type { CartItem } from '@/entities/cart-item'
 import { formatCurrency } from '@/features/cart/types'
 import { QuantityStepper } from './QuantityStepper'
 
@@ -26,7 +27,7 @@ interface CartItemRowProps {
   onRemove: (productId: string) => void
 }
 
-export function CartItemRow({ item, onQuantityChange, onRemove }: CartItemRowProps) {
+export const CartItemRow = memo(function CartItemRow({ item, onQuantityChange, onRemove }: CartItemRowProps) {
   const handleQuantityChange = (newQty: number) => {
     if (newQty === 0) {
       onRemove(item.productId)
@@ -126,4 +127,4 @@ export function CartItemRow({ item, onQuantityChange, onRemove }: CartItemRowPro
       </div>
     </article>
   )
-}
+})

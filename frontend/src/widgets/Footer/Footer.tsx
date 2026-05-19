@@ -1,10 +1,3 @@
-/**
- * Footer — application footer with copyright notice.
- *
- * Uses semantic HTML <footer> element with proper ARIA landmark.
- * All colors use semantic design tokens from @theme.
- */
-
 export function Footer() {
   return (
     <footer

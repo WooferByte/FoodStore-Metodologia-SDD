@@ -12,18 +12,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createElement } from 'react'
-import { useAuthStore } from '../../../store/authStore'
+import { useAuthStore } from '@/store/authStore'
 import { useLogout } from '../useLogout'
 
 // ---------------------------------------------------------------------------
 // Mock the authApi module so we control what logoutUser() returns
 // ---------------------------------------------------------------------------
 
-vi.mock('../../api/authApi', () => ({
+vi.mock('@/shared/api/authApi', () => ({
   logoutUser: vi.fn(),
 }))
 
-import { logoutUser } from '../../api/authApi'
+import { logoutUser } from '@/shared/api/authApi'
 const mockLogoutUser = vi.mocked(logoutUser)
 
 // ---------------------------------------------------------------------------

@@ -9,7 +9,7 @@
  * @component
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { SEARCH_DEBOUNCE_DELAY } from '@/features/products/constants'
 
@@ -32,8 +32,13 @@ export function SearchInput({
   placeholder = 'Search products...',
 }: SearchInputProps) {
   const [localValue, setLocalValue] = useState(value)
+  const prevValue = useRef(value)
 
-  // Debounce effect
+  if (value !== prevValue.current) {
+    prevValue.current = value
+    setLocalValue(value)
+  }
+
   useEffect(() => {
     const timer = setTimeout(() => {
       onChange(localValue)
@@ -41,11 +46,6 @@ export function SearchInput({
 
     return () => clearTimeout(timer)
   }, [localValue, onChange])
-
-  // Sync external value changes
-  useEffect(() => {
-    setLocalValue(value)
-  }, [value])
 
   const handleClear = () => {
     setLocalValue('')

@@ -24,7 +24,7 @@ import {
 } from '@/features/orders/constants/orderTransitions'
 import { useOrderDetailStore } from '@/features/orders/store/orderDetailStore'
 import { useAdvanceOrderState } from '@/features/orders/hooks/useAdvanceOrderState'
-import type { OrderDetail } from '@/features/orders/types'
+import type { OrderDetail } from '@\/entities/order'
 
 export interface OrderActionsProps {
   order: OrderDetail

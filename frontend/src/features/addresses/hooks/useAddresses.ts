@@ -10,7 +10,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/shared/api/axios'
-import type { DireccionResponse } from '@/features/addresses/types'
+import type { DireccionResponse } from '@\/entities/address'
 
 export function useAddresses() {
   return useQuery<DireccionResponse[]>({

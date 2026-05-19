@@ -10,8 +10,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AxiosError, AxiosHeaders, InternalAxiosRequestConfig } from 'axios'
-import { useAuthStore } from '../../../store/authStore'
-import { useUIStore } from '../../../store/uiStore'
+import { useAuthStore } from '@/store/authStore'
+import { useUIStore } from '@/store/uiStore'
 import { getErrorMessage, apiClient } from '../axios'
 
 // ---------------------------------------------------------------------------

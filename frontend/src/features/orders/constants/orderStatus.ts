@@ -16,7 +16,7 @@
  *   6 = CANCELADO     → muted     (grey)
  */
 
-import type { OrderStatusMeta } from '@/features/orders/types'
+import type { OrderStatusMeta } from '@\/entities/order'
 
 export const ORDER_STATUS_MAP: Record<number, OrderStatusMeta> = {
   1: {

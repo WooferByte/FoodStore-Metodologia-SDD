@@ -6,7 +6,7 @@
  * view-specific fields without polluting the store layer.
  */
 
-import type { CartItem } from '@/store'
+import type { CartItem } from '@/entities/cart-item'
 
 /**
  * CartUIItem — CartItem enriched with computed display helpers.

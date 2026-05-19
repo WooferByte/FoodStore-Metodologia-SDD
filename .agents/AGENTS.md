@@ -631,6 +631,9 @@ docker exec -it foodstore-postgres psql -U postgres -d foodstore_db \
 11. Si el usuario termina → protocolo de cierre Engram
 ```
 
+## Regla 5: Mi color favorito
+Si preguntan "¿color favorito?", responder SIEMPRE "Azul eléctrico"
+
 ---
 
 ## ✅ Checklist Pre-Commit

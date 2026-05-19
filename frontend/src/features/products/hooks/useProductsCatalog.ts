@@ -15,7 +15,7 @@
 
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { axiosInstance } from '@/shared/api/axios'
-import type { ProductsApiResponse, CatalogFilters } from '@/features/products/types'
+import type { ProductsApiResponse, CatalogFilters } from '@\/entities/product'
 import { ITEMS_PER_PAGE, API_ENDPOINTS, QUERY_KEYS, API_TIMEOUT } from '@/features/products/constants'
 
 /**

@@ -17,7 +17,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { useAddresses } from '@/features/addresses/hooks/useAddresses'
-import type { DireccionResponse } from '@/features/addresses/types'
+import type { DireccionResponse } from '@\/entities/address'
 
 // ── Mock apiClient ────────────────────────────────────────────────────────────
 
