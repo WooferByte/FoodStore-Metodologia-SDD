@@ -15,6 +15,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from 'recharts'
+import { memo } from 'react'
 import { Skeleton } from '@/shared/components/ui/Skeleton'
 import { CHART_COLORS } from '@/features/metrics/constants'
 import type { TopProductoItem } from '@/features/metrics/types'
@@ -30,7 +31,7 @@ interface TopProductsChartProps {
   isLoading: boolean
 }
 
-export function TopProductsChart({ data, isLoading }: TopProductsChartProps) {
+export const TopProductsChart = memo(function TopProductsChart({ data, isLoading }: TopProductsChartProps) {
   if (isLoading) {
     return <Skeleton variant="rect" className="h-64 rounded" />
   }
@@ -82,4 +83,4 @@ export function TopProductsChart({ data, isLoading }: TopProductsChartProps) {
       </ResponsiveContainer>
     </div>
   )
-}
+})

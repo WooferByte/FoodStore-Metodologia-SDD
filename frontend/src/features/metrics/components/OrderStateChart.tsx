@@ -14,6 +14,7 @@ import {
   Legend,
   Tooltip,
 } from 'recharts'
+import { memo } from 'react'
 import { Skeleton } from '@/shared/components/ui/Skeleton'
 import { CHART_PALETTE } from '@/features/metrics/constants'
 import type { PedidoEstadoItem } from '@/features/metrics/types'
@@ -29,7 +30,7 @@ interface OrderStateChartProps {
   isLoading: boolean
 }
 
-export function OrderStateChart({ data, isLoading }: OrderStateChartProps) {
+export const OrderStateChart = memo(function OrderStateChart({ data, isLoading }: OrderStateChartProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -83,4 +84,4 @@ export function OrderStateChart({ data, isLoading }: OrderStateChartProps) {
       </ResponsiveContainer>
     </div>
   )
-}
+})

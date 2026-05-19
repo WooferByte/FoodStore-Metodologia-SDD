@@ -12,6 +12,7 @@
  * All colors reference semantic @theme tokens — zero hardcoded colors.
  */
 
+import { memo } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Pencil, UserCheck, UserX } from 'lucide-react'
 import { Skeleton } from '@/shared/components/ui/Skeleton'
@@ -273,14 +274,14 @@ function MobileCards({ users, isLoading, onEdit, onToggleStatus }: UsersTablePro
   )
 }
 
-export function UsersTable(props: UsersTableProps) {
+export const UsersTable = memo(function UsersTable(props: UsersTableProps) {
   return (
     <>
       <DesktopTable {...props} />
       <MobileCards {...props} />
     </>
   )
-}
+})
 
 // Keep ROLES_LIST import used for ordering validation in tests
 export { ROLES_LIST }

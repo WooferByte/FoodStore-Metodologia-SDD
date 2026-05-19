@@ -15,6 +15,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts'
+import { memo } from 'react'
 import { Skeleton } from '@/shared/components/ui/Skeleton'
 import { CHART_COLORS } from '@/features/metrics/constants'
 import type { VentasItem } from '@/features/metrics/types'
@@ -39,7 +40,7 @@ interface SalesChartProps {
   isLoading: boolean
 }
 
-export function SalesChart({ data, isLoading }: SalesChartProps) {
+export const SalesChart = memo(function SalesChart({ data, isLoading }: SalesChartProps) {
   if (isLoading) {
     return <Skeleton variant="rect" className="h-64 rounded" />
   }
@@ -93,4 +94,4 @@ export function SalesChart({ data, isLoading }: SalesChartProps) {
       </ResponsiveContainer>
     </div>
   )
-}
+})

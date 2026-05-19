@@ -8,6 +8,7 @@
  */
 
 import { DollarSign, ShoppingBag, Package, Users } from 'lucide-react'
+import { memo } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Skeleton } from '@/shared/components/ui/Skeleton'
 import type { MetricsSummary } from '@/features/metrics/types'
@@ -72,7 +73,7 @@ interface MetricsKPICardsProps {
   isError: boolean
 }
 
-export function MetricsKPICards({ data, isLoading, isError }: MetricsKPICardsProps) {
+export const MetricsKPICards = memo(function MetricsKPICards({ data, isLoading, isError }: MetricsKPICardsProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" aria-busy="true">
@@ -116,4 +117,4 @@ export function MetricsKPICards({ data, isLoading, isError }: MetricsKPICardsPro
       })}
     </div>
   )
-}
+})

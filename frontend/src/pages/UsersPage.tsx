@@ -17,7 +17,7 @@
  *   - Status toggle confirmation modal (UserStatusModal)
  */
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { UserFiltersPanel } from '@/features/users/components/UserFiltersPanel'
 import { UsersTable } from '@/features/users/components/UsersTable'
 import { UserEditModal } from '@/features/users/components/UserEditModal'
@@ -52,15 +52,15 @@ export default function UsersPage() {
   const [statusUser,   setStatusUser]   = useState<AdminUser | null>(null)
   const [statusOpen,   setStatusOpen]   = useState(false)
 
-  function handleEdit(user: AdminUser) {
+  const handleEdit = useCallback((user: AdminUser) => {
     setSelectedUser(user)
     setEditOpen(true)
-  }
+  }, [])
 
-  function handleToggleStatus(user: AdminUser) {
+  const handleToggleStatus = useCallback((user: AdminUser) => {
     setStatusUser(user)
     setStatusOpen(true)
-  }
+  }, [])
 
   function handleEditClose() {
     setEditOpen(false)

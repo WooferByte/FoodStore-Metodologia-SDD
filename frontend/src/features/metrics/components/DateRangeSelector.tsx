@@ -6,6 +6,7 @@
  * Calling onChange immediately on every interaction (no "Aplicar" button).
  */
 
+import { memo } from 'react'
 import { cn } from '@/shared/lib/utils'
 import type { DateRange, DatePreset } from '@/features/metrics/types'
 import { PRESET_LABELS } from '@/features/metrics/constants'
@@ -41,7 +42,7 @@ interface DateRangeSelectorProps {
 
 const PRESETS: DatePreset[] = ['hoy', 'semana', 'mes', 'custom']
 
-export function DateRangeSelector({ dateRange, onChange }: DateRangeSelectorProps) {
+export const DateRangeSelector = memo(function DateRangeSelector({ dateRange, onChange }: DateRangeSelectorProps) {
   function handlePreset(preset: DatePreset) {
     if (preset === 'custom') {
       // Keep current desde/hasta but switch to custom preset
@@ -106,4 +107,4 @@ export function DateRangeSelector({ dateRange, onChange }: DateRangeSelectorProp
       )}
     </div>
   )
-}
+})

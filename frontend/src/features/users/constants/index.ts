@@ -10,7 +10,7 @@
 export const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
   ADMIN:    { bg: 'bg-destructive/15', text: 'text-destructive' },
   STOCK:    { bg: 'bg-primary/15',     text: 'text-primary' },
-  PEDIDOS:  { bg: 'bg-orange-500/15',  text: 'text-orange-600' },
+  PEDIDOS:  { bg: 'bg-warning/15',  text: 'text-warning' },
   CLIENT:   { bg: 'bg-success/15',     text: 'text-success' },
 }
 
