@@ -15,7 +15,7 @@
 
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { axiosInstance } from '@/shared/api/axios'
-import type { ProductsApiResponse, CatalogFilters } from '@\/entities/product'
+import type { ProductsApiResponse, CatalogFilters } from '@/entities/product'
 import { ITEMS_PER_PAGE, API_ENDPOINTS, QUERY_KEYS, API_TIMEOUT } from '@/features/products/constants'
 
 /**
@@ -30,6 +30,10 @@ function buildProductsQueryParams(filters: CatalogFilters, size: number): URLSea
 
   if (filters.search.trim()) {
     params.append('q', filters.search.trim())
+  }
+
+  if (filters.excludeAllergens.length > 0) {
+    params.append('excluirAlergenos', filters.excludeAllergens.join(','))
   }
 
   params.append('page', String(filters.currentPage))
@@ -58,7 +62,7 @@ export function useProductsCatalog(
   const queryUrl = `${API_ENDPOINTS.PRODUCTS}?${queryParams.toString()}`
 
   return useQuery<ProductsApiResponse>({
-    queryKey: [QUERY_KEYS.PRODUCTS, filters],
+    queryKey: [QUERY_KEYS.PRODUCTS, { categoryIds: filters.categoryIds, search: filters.search, excludeAllergens: filters.excludeAllergens, currentPage: filters.currentPage }],
     queryFn: async () => {
       const response = await axiosInstance.get<ProductsApiResponse>(queryUrl, {
         timeout: API_TIMEOUT,
