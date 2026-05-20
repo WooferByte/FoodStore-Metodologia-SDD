@@ -7,8 +7,8 @@ Create Date: 2026-05-08 10:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 
-revision = '002_add_usuario_rol_table'
-down_revision = '001_initial_schema'
+revision = '002'
+down_revision = '001'
 branch_labels = None
 depends_on = None
 

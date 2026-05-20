@@ -10,8 +10,8 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-revision = "005_ingredientes_excluidos_integer_array"
-down_revision = "004_rename_es_principal_to_es_predeterminada"
+revision = "005"
+down_revision = "004"
 branch_labels = None
 depends_on = None
 

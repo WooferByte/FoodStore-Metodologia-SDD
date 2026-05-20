@@ -7,8 +7,8 @@ Create Date: 2026-05-08 11:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 
-revision = '003_add_missing_fields'
-down_revision = '002_add_usuario_rol_table'
+revision = '003'
+down_revision = '002'
 branch_labels = None
 depends_on = None
 

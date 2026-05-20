@@ -9,8 +9,8 @@ Create Date: 2026-05-12 00:00:00.000000
 """
 from alembic import op
 
-revision = "006_add_categoria_padre_id_index"
-down_revision = "005_ingredientes_excluidos_integer_array"
+revision = "006"
+down_revision = "005"
 branch_labels = None
 depends_on = None
 
