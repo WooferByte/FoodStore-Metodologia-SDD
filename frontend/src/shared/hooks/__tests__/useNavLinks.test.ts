@@ -113,18 +113,19 @@ describe('useNavLinks hook', () => {
     expect(links[0].to).toBe('/admin/pedidos')
   })
 
-  it('5. roles ["ADMIN"] → returns 8 admin links (no Mis Pedidos)', () => {
+  it('5. roles ["ADMIN"] → returns 9 admin links (no Mis Pedidos)', () => {
     mockAuthState({ hasHydrated: true, roles: ['ADMIN'] })
 
     const { result } = renderHook(() => useNavLinks())
     const links = result.current
 
-    expect(links).toHaveLength(8)
+    expect(links).toHaveLength(9)
     const paths = links.map((l) => l.to)
     expect(paths).toContain('/admin/productos')
     expect(paths).toContain('/admin/stock')
     expect(paths).toContain('/admin/usuarios')
     expect(paths).toContain('/admin/categorias')
+    expect(paths).toContain('/admin/ingredientes')
     expect(paths).toContain('/admin/metricas')
     expect(paths).toContain('/admin/configuracion')
     expect(paths).not.toContain('/orders')

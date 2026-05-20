@@ -50,6 +50,7 @@ const ADMIN_LINKS: NavLink[] = [
   { label: 'Productos', to: '/admin/productos' },
   { label: 'Stock', to: '/admin/stock' },
   { label: 'Categorías', to: '/admin/categorias' },
+  { label: 'Ingredientes', to: '/admin/ingredientes' },
   { label: 'Pedidos', to: '/admin/pedidos' },
   { label: 'Métricas', to: '/admin/metricas' },
   { label: 'Configuración', to: '/admin/configuracion' },
