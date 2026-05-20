@@ -16,7 +16,7 @@ import { useUIStore } from '@/store/uiStore'
 import { useOrderDetailStore } from '@/features/orders/store/orderDetailStore'
 import { ORDERS_QUERY_KEY } from '@/features/orders/hooks/useOrders'
 import { ORDER_DETAIL_QUERY_KEY } from '@/features/orders/hooks/useOrderDetail'
-import type { Order } from '@/features/orders/types'
+import type { Order } from '@\/entities/order'
 
 export function useCancelOrder() {
   const queryClient = useQueryClient()

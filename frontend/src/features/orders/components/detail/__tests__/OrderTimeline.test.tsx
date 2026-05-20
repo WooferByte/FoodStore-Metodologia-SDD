@@ -14,7 +14,7 @@ import '@testing-library/jest-dom'
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { OrderTimeline } from '../OrderTimeline'
-import type { OrderHistorialItem } from '@/features/orders/types'
+import type { OrderHistorialItem } from '@\/entities/order'
 
 const historialItems: OrderHistorialItem[] = [
   {

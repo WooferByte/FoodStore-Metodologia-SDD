@@ -33,7 +33,7 @@ import { apiClient } from '@/shared/api/axios'
 import { useCheckoutValidation } from '../hooks/useCheckoutValidation'
 import { useCartStore } from '@/store/cartStore'
 import { useUIStore } from '@/store/uiStore'
-import type { CartItem } from '@/store/types'
+import type { CartItem } from '@/entities/cart-item'
 import type { ValidarCarritoResponse } from '../types'
 
 // ---------------------------------------------------------------------------

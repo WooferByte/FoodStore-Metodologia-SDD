@@ -10,7 +10,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/shared/api/axios'
 import { useUIStore } from '@/store/uiStore'
-import type { DireccionResponse } from '@/features/addresses/types'
+import type { DireccionResponse } from '@\/entities/address'
 
 interface SetPredeterminadaVariables {
   id: number

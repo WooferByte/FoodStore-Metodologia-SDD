@@ -12,7 +12,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { axiosInstance } from '@/shared/api/axios'
-import type { CategoriesApiResponse } from '@/features/products/types'
+import type { CategoriesApiResponse } from '@\/entities/product'
 import { API_ENDPOINTS, QUERY_KEYS, API_TIMEOUT } from '@/features/products/constants'
 
 /**

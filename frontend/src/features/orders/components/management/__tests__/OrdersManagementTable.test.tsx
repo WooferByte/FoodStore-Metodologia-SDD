@@ -18,7 +18,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { OrdersManagementTable } from '../OrdersManagementTable'
 import { useOrdersManagementStore } from '@/features/orders/store/ordersManagementStore'
-import type { Order } from '@/features/orders/types'
+import type { Order } from '@\/entities/order'
 
 function makeOrder(id: number, estadoId = 2, email?: string): Order & { usuario_email?: string } {
   return {

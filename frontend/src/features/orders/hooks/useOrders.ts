@@ -9,7 +9,7 @@
 
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { apiClient } from '@/shared/api/axios'
-import type { OrdersPage, UseOrdersParams } from '@/features/orders/types'
+import type { OrdersPage, UseOrdersParams } from '@\/entities/order'
 
 export const ORDERS_QUERY_KEY = 'orders'
 

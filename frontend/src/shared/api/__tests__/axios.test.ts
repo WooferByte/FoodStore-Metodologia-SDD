@@ -13,7 +13,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import axios, { AxiosError, AxiosHeaders, InternalAxiosRequestConfig } from 'axios'
-import { useAuthStore } from '../../../store/authStore'
+import { useAuthStore } from '@/store/authStore'
 
 // ---------------------------------------------------------------------------
 // Helpers

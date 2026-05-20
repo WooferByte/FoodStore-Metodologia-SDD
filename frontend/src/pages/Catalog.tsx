@@ -1,26 +1,32 @@
 /**
  * Catalog Page Component
- * 
+ *
  * Main page for the product catalog with:
  * - Filter bar (search, categories, allergens)
  * - Product grid with responsive layout
  * - Product detail modal
  * - Pagination
  * - Integrated cart management
- * 
+ *
  * Architecture:
  * - Container component (handles state, API calls)
  * - Presenter component (renders UI)
- * 
+ *
+ * Search strategy:
+ * - `searchTerm` is the immediate input value (bound to SearchInput)
+ * - `debouncedSearch` is delayed 300ms — used for client-side filtering via useCatalogSearch
+ * - The backend query NEVER receives a `q=` param — search is 100% client-side
+ *
  * @component
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useCartStore } from '@/store/cartStore'
 import { useUIStore } from '@/store/uiStore'
 import {
   useProductsCatalog,
   useAllergensFilter,
+  useCatalogSearch,
 } from '@/features/products/hooks'
 import {
   ProductGrid,
@@ -29,23 +35,31 @@ import {
   Pagination,
   AppliedFilters,
 } from '@/features/products/components'
-import { ITEMS_PER_PAGE } from '@/features/products/constants'
-import type { Product, CatalogFilters } from '@/features/products/types'
+import { ITEMS_PER_PAGE, SEARCH_DEBOUNCE_DELAY } from '@/features/products/constants'
+import { useDebounce } from '@/shared/hooks/useDebounce'
+import type { Product, CatalogFilters } from '@/entities/product'
 
 /**
  * CatalogPage Component
- * 
+ *
  * Main catalog page that orchestrates:
  * - Filter state management
  * - API calls via React Query
+ * - Client-side search via useCatalogSearch + useDebounce
  * - Cart integration with Zustand
  * - Modal state management
  */
 export default function CatalogPage() {
-  // Filter state
+  // Immediate search term — bound to the SearchInput value prop
+  const [searchTerm, setSearchTerm] = useState('')
+
+  // Debounced search — used for client-side filtering (avoids filtering on every keystroke)
+  const debouncedSearch = useDebounce(searchTerm, SEARCH_DEBOUNCE_DELAY)
+
+  // Other filters — category, allergens, pagination
   const [filters, setFilters] = useState<CatalogFilters>({
     categoryIds: [],
-    search: '',
+    search: '',      // kept in CatalogFilters for AppliedFilters display (reflects searchTerm)
     excludeAllergens: [],
     currentPage: 1,
   })
@@ -58,10 +72,16 @@ export default function CatalogPage() {
   const addToCart = useCartStore((state) => state.addItem)
   const addToast = useUIStore((state) => state.addToast)
 
-  // Fetch products with current filters
+  // Fetch ALL products (search param removed — client-side only)
   const { data: catalogData, isPending, isFetching, isError, error, refetch } = useProductsCatalog(
     filters,
     ITEMS_PER_PAGE,
+  )
+
+  // Client-side search filter — runs on debounced term so filtering doesn't lag input
+  const { filtered: filteredProducts, resultCount } = useCatalogSearch(
+    catalogData?.items ?? [],
+    debouncedSearch,
   )
 
   // Extract allergens from current products for display
@@ -76,10 +96,12 @@ export default function CatalogPage() {
   // ===== Filter Handlers =====
 
   const handleSearchChange = (search: string) => {
+    setSearchTerm(search)
+    // Keep filters.search in sync so AppliedFilters chip shows correctly
     setFilters((prev) => ({
       ...prev,
       search,
-      currentPage: 1, // Reset to page 1 when search changes
+      currentPage: 1,
     }))
   }
 
@@ -87,7 +109,7 @@ export default function CatalogPage() {
     setFilters((prev) => ({
       ...prev,
       categoryIds,
-      currentPage: 1, // Reset to page 1 when filter changes
+      currentPage: 1,
     }))
   }
 
@@ -95,7 +117,7 @@ export default function CatalogPage() {
     setFilters((prev) => ({
       ...prev,
       excludeAllergens,
-      currentPage: 1, // Reset to page 1 when filter changes
+      currentPage: 1,
     }))
   }
 
@@ -121,6 +143,7 @@ export default function CatalogPage() {
   }
 
   const handleClearAllFilters = () => {
+    setSearchTerm('')
     setFilters({
       categoryIds: [],
       search: '',
@@ -131,19 +154,19 @@ export default function CatalogPage() {
 
   // ===== Modal Handlers =====
 
-  const handleViewDetails = (product: Product) => {
+  const handleViewDetails = useCallback((product: Product) => {
     setSelectedProduct(product)
     setIsDetailOpen(true)
-  }
+  }, [])
 
-  const handleCloseDetail = () => {
+  const handleCloseDetail = useCallback(() => {
     setIsDetailOpen(false)
     setSelectedProduct(null)
-  }
+  }, [])
 
   // ===== Cart Integration =====
 
-  const handleAddToCart = (product: Product, quantity: number) => {
+  const handleAddToCart = useCallback((product: Product, quantity: number) => {
     try {
       addToCart({
         productId: product.id,
@@ -153,14 +176,12 @@ export default function CatalogPage() {
         image: product.imagen_url,
       })
 
-      // Show success toast
       addToast({
         message: `Added ${quantity}x ${product.nombre} to cart!`,
         type: 'success',
         duration: 2000,
       })
 
-      // Close modal
       handleCloseDetail()
     } catch (err) {
       addToast({
@@ -169,12 +190,11 @@ export default function CatalogPage() {
         duration: 3000,
       })
     }
-  }
+  }, [addToCart, addToast, handleCloseDetail])
 
-  const handleAddToCartFromCard = (product: Product) => {
-    // Quick add with quantity 1
+  const handleAddToCartFromCard = useCallback((product: Product) => {
     handleAddToCart(product, 1)
-  }
+  }, [handleAddToCart])
 
   // ===== Render =====
 
@@ -204,16 +224,11 @@ export default function CatalogPage() {
         />
 
         {/* Main Content: Filters + Grid */}
-        {/* FilterBar manages its own mobile open/close state and renders
-            the hamburger trigger internally — see FilterBar.tsx for details.
-            On mobile: the FilterBar wrapper is hidden from the grid flow (hidden md:block)
-            so it does not create an empty row. The mobile trigger is rendered
-            by FilterBar as a fixed-position overlay panel (z-50). */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
           {/* Filter Sidebar — hidden on mobile so the grid row collapses */}
           <div className="hidden md:block md:col-span-1">
             <FilterBar
-              search={filters.search}
+              search={searchTerm}
               categoryIds={filters.categoryIds}
               excludeAllergens={filters.excludeAllergens}
               products={catalogData?.items}
@@ -226,7 +241,7 @@ export default function CatalogPage() {
           {/* Mobile FilterBar — outside grid flow, full width, rendered above products */}
           <div className="md:hidden col-span-1">
             <FilterBar
-              search={filters.search}
+              search={searchTerm}
               categoryIds={filters.categoryIds}
               excludeAllergens={filters.excludeAllergens}
               products={catalogData?.items}
@@ -245,11 +260,15 @@ export default function CatalogPage() {
                 aria-live="polite"
                 aria-atomic="true"
               >
-                {isFetching && !isPending ? 'Actualizando...' : `${catalogData.total} productos encontrados`}
+                {isFetching && !isPending
+                  ? 'Actualizando...'
+                  : debouncedSearch.trim()
+                    ? `${resultCount} productos encontrados`
+                    : `${catalogData.total} productos encontrados`}
               </p>
             )}
             <ProductGrid
-              products={catalogData?.items}
+              products={filteredProducts}
               isLoading={isPending}
               isFetching={isFetching}
               isError={isError}

@@ -10,7 +10,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/shared/api/axios'
-import type { OrderDetail } from '@/features/orders/types'
+import type { OrderDetail } from '@\/entities/order'
 
 export const ORDER_DETAIL_QUERY_KEY = 'order-detail'
 

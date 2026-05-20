@@ -30,7 +30,7 @@ import { useCreateAddress } from '@/features/addresses/hooks/useCreateAddress'
 import { useUpdateAddress } from '@/features/addresses/hooks/useUpdateAddress'
 import { useSetPredeterminada } from '@/features/addresses/hooks/useSetPredeterminada'
 import { useDeleteAddress } from '@/features/addresses/hooks/useDeleteAddress'
-import type { DireccionCreate, DireccionResponse } from '@/features/addresses/types'
+import type { DireccionCreate, DireccionResponse } from '@\/entities/address'
 
 export default function MyAddressesPage() {
   const { data: addresses, isLoading } = useAddresses()

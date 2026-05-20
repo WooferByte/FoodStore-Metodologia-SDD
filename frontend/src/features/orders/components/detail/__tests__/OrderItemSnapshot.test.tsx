@@ -15,7 +15,7 @@ import '@testing-library/jest-dom'
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { OrderItemSnapshot } from '../OrderItemSnapshot'
-import type { OrderDetailItem } from '@/features/orders/types'
+import type { OrderDetailItem } from '@\/entities/order'
 
 const baseItem: OrderDetailItem = {
   id: 1,

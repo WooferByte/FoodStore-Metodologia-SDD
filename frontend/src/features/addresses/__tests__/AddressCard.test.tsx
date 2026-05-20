@@ -16,7 +16,7 @@ import '@testing-library/jest-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { AddressCard } from '@/features/addresses/components/AddressCard'
-import type { DireccionResponse } from '@/features/addresses/types'
+import type { DireccionResponse } from '@\/entities/address'
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 

@@ -12,7 +12,7 @@
  */
 
 import { OrderStatusBadge } from '@/features/orders/components/OrderStatusBadge'
-import type { OrderHistorialItem } from '@/features/orders/types'
+import type { OrderHistorialItem } from '@\/entities/order'
 
 export interface OrderTimelineItemProps {
   item: OrderHistorialItem

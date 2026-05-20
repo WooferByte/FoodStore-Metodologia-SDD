@@ -9,7 +9,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/shared/api/axios'
 import { useUIStore } from '@/store/uiStore'
-import type { DireccionCreate, DireccionResponse } from '@/features/addresses/types'
+import type { DireccionCreate, DireccionResponse } from '@\/entities/address'
 
 export function useCreateAddress() {
   const qc = useQueryClient()

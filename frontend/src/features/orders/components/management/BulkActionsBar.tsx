@@ -22,7 +22,7 @@ import { BulkConfirmModal } from '@/features/orders/components/management/BulkCo
 import { StateTransitionModal } from '@/features/orders/components/management/StateTransitionModal'
 import { useOrdersManagementStore } from '@/features/orders/store/ordersManagementStore'
 import { useBulkOrderActions } from '@/features/orders/hooks/useBulkOrderActions'
-import type { Order } from '@/features/orders/types'
+import type { Order } from '@\/entities/order'
 
 export interface BulkActionsBarProps {
   /** Current page of orders — needed to derive mixed/shared status */

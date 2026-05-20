@@ -18,9 +18,9 @@
  */
 
 import type { ReactNode } from 'react'
-import Navbar from '@/shared/components/Navbar'
-import { Sidebar } from './Sidebar'
-import { Footer } from './Footer'
+import Navbar from '@/widgets/Navbar/Navbar'
+import { Sidebar } from '@/widgets/Sidebar/Sidebar'
+import { Footer } from '@/widgets/Footer/Footer'
 
 interface AppLayoutProps {
   children: ReactNode

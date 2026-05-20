@@ -13,7 +13,7 @@
  * - Accessible pagination with aria-current="page" and aria-label on nav
  */
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useOrders } from '@/features/orders/hooks/useOrders'
 import { OrderCard } from '@/features/orders/components/OrderCard'
@@ -36,6 +36,10 @@ export default function MyOrdersPage() {
 
   const hasPrev = page > 0
   const hasNext = page < lastPage
+
+  const handleViewDetail = useCallback((id: number) => {
+    navigate(`/orders/${id}`)
+  }, [navigate])
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
@@ -81,7 +85,7 @@ export default function MyOrdersPage() {
                 key={order.id}
                 order={order}
                 mode="client"
-                onViewDetail={(id) => navigate(`/orders/${id}`)}
+                onViewDetail={handleViewDetail}
               />
             ))}
           </div>

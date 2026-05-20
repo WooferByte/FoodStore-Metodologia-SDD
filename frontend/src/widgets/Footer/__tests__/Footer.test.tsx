@@ -1,11 +1,3 @@
-/**
- * Footer component tests.
- *
- * Tests:
- *   - Copyright text is present
- *   - Renders as <footer> element (role="contentinfo")
- */
-
 import '@testing-library/jest-dom'
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'

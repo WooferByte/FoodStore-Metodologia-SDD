@@ -15,7 +15,7 @@
  * - Selection cleared on page change
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOrders } from '@/features/orders/hooks/useOrders'
 import { OrdersFilters } from '@/features/orders/components/OrdersFilters'
@@ -63,6 +63,10 @@ export default function OrdersPanelPage() {
     clearAll()
   }, [page, clearAll])
 
+  const handleViewDetail = useCallback((id: number) => {
+    navigate(`/admin/pedidos/${id}`)
+  }, [navigate])
+
   // Find the order for the state modal
   const stateModalOrder = stateModalOrderId != null
     ? orders.find((o) => o.id === stateModalOrderId) ?? null
@@ -95,7 +99,7 @@ export default function OrdersPanelPage() {
       <OrdersManagementTable
         orders={orders}
         isLoading={isLoading}
-        onViewDetail={(id) => navigate(`/admin/pedidos/${id}`)}
+        onViewDetail={handleViewDetail}
         onStateChange={(id) => setStateModalOrderId(id)}
       />
 

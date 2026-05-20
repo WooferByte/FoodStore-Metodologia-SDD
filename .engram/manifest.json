@@ -82,12 +82,20 @@
       "prompts": 0
     },
     {
-      "id": "86c8539e",
+      "id": "633d0341",
+      "created_by": "santiago",
+      "created_at": "2026-05-19T17:38:14Z",
+      "sessions": 1,
+      "memories": 14,
+      "prompts": 0
+    },
+    {
+      "id": "b270725f",
       "created_by": "Woofe",
-      "created_at": "2026-05-20T13:07:07Z",
-      "sessions": 5,
-      "memories": 22,
-      "prompts": 24
+      "created_at": "2026-05-20T13:32:17Z",
+      "sessions": 1,
+      "memories": 5,
+      "prompts": 13
     }
   ]
 }

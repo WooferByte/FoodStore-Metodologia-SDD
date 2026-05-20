@@ -14,7 +14,7 @@ from typing import Optional, Tuple, Type, TypeVar
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import SQLModel
 
@@ -218,7 +218,7 @@ async def seed_database() -> None:
 
         # ──────────────────────────────────────────────────────────
         # PRODUCTOS
-        # (nombre, descripcion, precio, stock, [cats], [(ing, es_removible)])
+        # (nombre, descripcion, precio, stock, [cats], [(ing, es_removible)], imagen_url)
         # ──────────────────────────────────────────────────────────
         print("\n[PRODUCTOS]")
         productos_spec = [
@@ -228,6 +228,7 @@ async def seed_database() -> None:
                 Decimal("2800.00"), 50,
                 [c_clasicas],
                 [("Harina de Trigo", False), ("Salsa de Tomate", False), ("Mozzarella", True)],
+                "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80",
             ),
             (
                 "Pizza Pepperoni",
@@ -236,6 +237,7 @@ async def seed_database() -> None:
                 [c_clasicas],
                 [("Harina de Trigo", False), ("Salsa de Tomate", False),
                  ("Mozzarella", True), ("Pepperoni", True)],
+                "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400&q=80",
             ),
             (
                 "Pizza 4 Quesos",
@@ -244,6 +246,7 @@ async def seed_database() -> None:
                 [c_especiales],
                 [("Harina de Trigo", False), ("Mozzarella", True),
                  ("Queso Cheddar", True), ("Queso Provolone", True)],
+                "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&q=80",
             ),
             (
                 "Pizza Fugazzeta",
@@ -251,6 +254,7 @@ async def seed_database() -> None:
                 Decimal("3000.00"), 35,
                 [c_clasicas],
                 [("Harina de Trigo", False), ("Mozzarella", True), ("Cebolla", True)],
+                "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80",
             ),
             (
                 "Pizza Napolitana",
@@ -259,6 +263,7 @@ async def seed_database() -> None:
                 [c_especiales],
                 [("Harina de Trigo", False), ("Salsa de Tomate", False),
                  ("Mozzarella", True), ("Tomate", True)],
+                "https://images.unsplash.com/photo-1551183053-bf91798d773e?w=400&q=80",
             ),
             (
                 "Pizza Marinera",
@@ -267,6 +272,7 @@ async def seed_database() -> None:
                 [c_especiales],
                 [("Harina de Trigo", False), ("Salsa de Tomate", False),
                  ("Mariscos", True), ("Camarones", True)],
+                "https://images.unsplash.com/photo-1619947583690-c2c9d5f97ed2?w=400&q=80",
             ),
             (
                 "Hamburguesa Clásica",
@@ -275,6 +281,7 @@ async def seed_database() -> None:
                 [c_hambur],
                 [("Carne Vacuna", False), ("Lechuga", True),
                  ("Tomate", True), ("Cebolla", True), ("Ketchup", True)],
+                "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80",
             ),
             (
                 "Hamburguesa Doble Cheddar",
@@ -283,6 +290,7 @@ async def seed_database() -> None:
                 [c_hambur],
                 [("Carne Vacuna", False), ("Queso Cheddar", True),
                  ("Bacon Ahumado", True), ("Lechuga", True), ("Mayonesa", True)],
+                "https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=400&q=80",
             ),
             (
                 "Hamburguesa de Pollo",
@@ -291,6 +299,7 @@ async def seed_database() -> None:
                 [c_hambur],
                 [("Pollo Grillado", False), ("Lechuga", True),
                  ("Tomate", True), ("Mayonesa", True)],
+                "https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=400&q=80",
             ),
             (
                 "Combo Burger + Gaseosa",
@@ -299,6 +308,7 @@ async def seed_database() -> None:
                 [c_combos, c_hambur],
                 [("Carne Vacuna", False), ("Lechuga", True),
                  ("Tomate", True), ("Ketchup", True)],
+                "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=400&q=80",
             ),
             (
                 "Coca-Cola 500ml",
@@ -306,6 +316,7 @@ async def seed_database() -> None:
                 Decimal("600.00"), 200,
                 [c_gaseosas, c_bebidas],
                 [],
+                "https://images.unsplash.com/photo-1554866585-cd94860890b7?w=400&q=80",
             ),
             (
                 "Sprite 500ml",
@@ -313,6 +324,7 @@ async def seed_database() -> None:
                 Decimal("600.00"), 200,
                 [c_gaseosas, c_bebidas],
                 [],
+                "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=400&q=80",
             ),
             (
                 "Cerveza Artesanal IPA",
@@ -320,6 +332,7 @@ async def seed_database() -> None:
                 Decimal("1400.00"), 60,
                 [c_cervezas, c_bebidas],
                 [],
+                "https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=400&q=80",
             ),
             (
                 "Helado Doble Sabor",
@@ -327,6 +340,7 @@ async def seed_database() -> None:
                 Decimal("900.00"), 80,
                 [c_helados, c_postres],
                 [("Leche", False)],
+                "https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=400&q=80",
             ),
             (
                 "Brownie con Helado",
@@ -335,10 +349,11 @@ async def seed_database() -> None:
                 [c_postres, c_helados],
                 [("Harina de Trigo", False), ("Huevo", False),
                  ("Leche", False), ("Nueces", True)],
+                "https://images.unsplash.com/photo-1564355808539-22fda35bed7e?w=400&q=80",
             ),
         ]
 
-        for nombre, desc, precio, stock, categorias, ing_rel in productos_spec:
+        for nombre, desc, precio, stock, categorias, ing_rel, imagen_url in productos_spec:
             prod, created = await get_or_create(
                 session, Producto, {"nombre": nombre},
                 {
@@ -346,6 +361,7 @@ async def seed_database() -> None:
                     "precio_base": precio,
                     "stock_cantidad": stock,
                     "disponible": True,
+                    "imagen_url": imagen_url,
                 },
             )
             if created:
@@ -361,6 +377,27 @@ async def seed_database() -> None:
                         ))
                 await session.flush()
             print(f"  {'[CREATE]' if created else '[EXISTS]'} {nombre:<35} ${precio}  stock={stock}")
+
+        # ──────────────────────────────────────────────────────────
+        # UPDATE IMAGEN_URL — idempotent update for existing rows
+        # Sets imagen_url on products that were seeded without it.
+        # ──────────────────────────────────────────────────────────
+        print("\n[UPDATE IMAGEN_URL]")
+        imagen_url_map = {
+            nombre: imagen_url
+            for nombre, _, _, _, _, _, imagen_url in productos_spec
+        }
+        updated_count = 0
+        for nombre, imagen_url in imagen_url_map.items():
+            result = await session.execute(
+                text("UPDATE productos SET imagen_url = :url WHERE nombre = :nombre AND imagen_url IS NULL"),
+                {"url": imagen_url, "nombre": nombre},
+            )
+            if result.rowcount > 0:
+                updated_count += 1
+                print(f"  [UPDATED] {nombre}")
+        if updated_count == 0:
+            print("  [OK] All products already have imagen_url")
 
         await session.commit()
 

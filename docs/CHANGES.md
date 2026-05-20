@@ -1,9 +1,9 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-05-18 (frontend-payment-status-polling archivado)
+> **Última actualización**: 2026-05-19 (refactor-fsd-performance archivado)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
-> **Versión mapa**: 3.1 — Estado real sincronizado + inconsistencias marcadas para reparar
+> **Versión mapa**: 5.0 — Estado real sincronizado
 
 ---
 
@@ -337,6 +337,17 @@ Tabla pivote `ProductoIngrediente` con `es_removible`. `PUT/DELETE /api/v1/produ
 
 ---
 
+### ✅ `frontend-catalog-search-images-refactor`
+Archivado: `2026-05-18-frontend-catalog-search-images-refactor`
+**Evidencia**: `openspec/changes/archive/2026-05-18-frontend-catalog-search-images-refactor/`
+
+3 mejoras al catálogo. (1) Búsqueda client-side debounced: `useDebounce(300ms)` + `useCatalogSearch` con normalización NFD (acentos), `useMemo`, filtra en `nombre`+`descripcion` sin queries adicionales al backend. `SearchInput` controlled puro con `resultCount` + `aria-live`. (2) Imágenes en seed: `backend/scripts/seed.py` actualizado con `imagen_url` (Unsplash) para 15 productos + UPDATE idempotente para filas existentes. (3) Refactor `ProductCard`: fallback gradiente+inicial, `aspect-[4/3]`, `group-hover:scale-105`, badge stock ARIA (`role="status"`, tokens `bg-success/15`), precio `text-2xl`, botones siempre con texto, `py-2.5`. 522/522 vitest, 19 tests nuevos.
+
+**Skills**: `tailwind-design-system`, `ui-design-system`, `vercel-react-best-practices`, `frontend-state-management`
+**Dependencias**: `frontend-products-catalog-ui`
+
+---
+
 ### ✅ `products-catalog-public` (archivado 2026-05-13)
 
 `GET /api/v1/productos` público con paginación, búsqueda ILIKE, filtro por categoría, exclusión de alergenos. `GET /api/v1/productos/:id` con categorías e ingredientes.
@@ -556,29 +567,35 @@ Hook `usePaymentStatusPolling(pedidoId)` — polling cada 30s a `GET /api/v1/pag
 
 ## EPIC 12 — Panel de Administración
 
-### ❌ `backend-admin-users-endpoints` *(NUEVO en v3.0 — gap INC anterior)*
+### ✅ `backend-admin-users-endpoints` *(Hecho — archivado 2026-05-18)*
+Archivado: `2026-05-18-backend-admin-users-endpoints`
+**Evidencia**: `openspec/changes/archive/2026-05-18-backend-admin-users-endpoints/`
 
-`GET /api/v1/admin/usuarios` — paginación, búsqueda, filtro por rol. `PUT /api/v1/admin/usuarios/:id` — editar nombre/roles, invalida refresh tokens al cambiar rol. `PATCH /api/v1/admin/usuarios/:id/estado` — campo `activo`, al desactivar revoca tokens.
+3 endpoints admin de gestión de usuarios. `GET /api/v1/admin/usuarios` — paginación (limit/offset/total), búsqueda ILIKE en email+nombre, filtro por rol. `PUT /api/v1/admin/usuarios/:id` — editar nombre/apellido/email/telefono/roles. Cambio de roles → revoca todos los refresh tokens (bulk UPDATE sin N+1). Protección último ADMIN → 409. `PATCH /api/v1/admin/usuarios/:id/estado` — toggle activo. Desactivar → revoca todos los refresh tokens. Protección último ADMIN → 409 (filtra por activo=True al contar). Módulo `backend/admin/` separado de `backend/usuarios/`. 25/25 pytest.
 
-**Skills**: `fastapi-python`, `postgres`
+**Skills**: `python-fastapi-ddd-skill`, `supabase-postgres-best-practices`, `api-design`, `jwt-security`, `post-change-verification`
 **Dependencias**: `rbac-roles-management`
 
 ---
 
-### ❌ `admin-dashboard-metrics`
+### ✅ `admin-dashboard-metrics` *(Hecho — archivado 2026-05-18)*
+Archivado: `2026-05-18-admin-dashboard-metrics`
+**Evidencia**: `openspec/changes/archive/2026-05-18-admin-dashboard-metrics/`
 
-`GET /api/v1/admin/metricas/resumen` con filtro fecha. `GET /api/v1/admin/metricas/ventas?granularidad=dia|semana|mes` (DATE_TRUNC). `GET /api/v1/admin/metricas/productos-top`. `GET /api/v1/admin/metricas/pedidos-por-estado`.
+4 endpoints de métricas admin. `GET /api/v1/admin/metricas/resumen` — KPIs: total_ventas, pedidos_hoy, productos_activos, usuarios_activos. Rango opcional. `GET /api/v1/admin/metricas/ventas` — DATE_TRUNC por granularidad (dia/semana/mes). `GET /api/v1/admin/metricas/top-productos` — top 10 por SUM(cantidad), pedidos no cancelados. `GET /api/v1/admin/metricas/pedidos-por-estado` — 6 estados siempre presentes (incluso count=0). `Cache-Control: max-age=300, private` en todos los endpoints. 27/27 pytest.
 
-**Skills**: `fastapi-python`, `postgres`
+**Skills**: `python-fastapi-ddd-skill`, `supabase-postgres-best-practices`, `api-design`, `dashboard-crud-page`, `post-change-verification`
 **Dependencias**: `orders-fsm-backend`, `products-crud-core`
 
 ---
 
-### ❌ `frontend-admin-dashboard-ui`
+### ✅ `frontend-admin-dashboard-ui` *(Hecho — archivado 2026-05-18)*
+Archivado: `2026-05-18-frontend-admin-dashboard-ui`
+**Evidencia**: `openspec/changes/archive/2026-05-18-frontend-admin-dashboard-ui/`
 
-KPI cards. Selector rango fechas. LineChart ventas, BarChart top productos, PieChart estados, tabla stock bajo. Refresh cada 5min.
+Dashboard admin completo con métricas. `features/metrics/`: tipos, constantes (CHART_COLORS oklch, GRANULARIDAD_MAP), 4 hooks TanStack Query (staleTime 300s), 5 componentes (`MetricsKPICards`, `DateRangeSelector`, `SalesChart` LineChart, `TopProductsChart` BarChart horizontal, `OrderStateChart` PieChart). `pages/Admin.tsx` — `AdminDashboardPage` con `dateRange` en useState local. E2E: `e2e/admin/dashboard-metrics.spec.ts`. Bugfixes post-testing: endpoint `/resumen` renombrado de `"/"` a `"/resumen"` en backend; `/admin/configuracion` muestra placeholder "Próximamente" (no cargaba `<Admin/>`); `ADMIN_LINKS` — eliminado "Mis Pedidos" duplicado. 545/545 vitest, 0 errores TypeScript.
 
-**Skills**: `frontend-design`, `tailwind-design-system`, `postgres`
+**Skills**: `tailwind-design-system`, `ui-design-system`, `vercel-react-best-practices`, `frontend-state-management`, `dashboard-crud-page`, `testing-e2e-playwright`
 **Dependencias**: `admin-dashboard-metrics`, `frontend-layout-components-shared`
 
 ---
@@ -601,9 +618,10 @@ KPI cards. Selector rango fechas. LineChart ventas, BarChart top productos, PieC
 
 ---
 
-### ❌ `admin-users-management-ui`
+### ✅ `admin-users-management-ui` (archivado 2026-05-18)
 
 Tabla usuarios con badge `activo`. Acciones: editar, activar/desactivar, cambiar roles. Filtro por rol/estado.
+Evidencia: `openspec/changes/archive/2026-05-18-admin-users-management-ui/`
 
 **Skills**: `frontend-design`, `tailwind-design-system`
 **Dependencias**: `backend-admin-users-endpoints`, `frontend-layout-components-shared`
@@ -741,8 +759,8 @@ BLOQUE 5 — Pre-checkout + Pedidos
 ├─ ✅ orders-fsm-backend
 ├─ ✅ orders-api-endpoints
 ├─ ✅ frontend-orders-listing-ui
-├─ ❌ frontend-orders-detail-ui
-└─ ❌ frontend-orders-management-admin
+├─ ✅ frontend-orders-detail-ui
+└─ ✅ frontend-orders-management-admin
 
 BLOQUE 6 — Pagos
 ├─ ✅ payments-mercadopago-integration-backend
@@ -751,13 +769,13 @@ BLOQUE 6 — Pagos
 └─ ✅ frontend-payment-status-polling
 
 BLOQUE 7 — Admin
-├─ ❌ backend-admin-users-endpoints
-├─ ❌ admin-dashboard-metrics
-├─ ❌ frontend-admin-dashboard-ui
+├─ ✅ backend-admin-users-endpoints
+├─ ✅ admin-dashboard-metrics
+├─ ✅ frontend-admin-dashboard-ui
 ├─ ❌ admin-categories-management-ui
 ├─ ❌ admin-products-management-ui
 ├─ ❌ admin-stock-management-ui
-├─ ❌ admin-users-management-ui
+├─ ✅ admin-users-management-ui
 └─ ❌ admin-ingredients-management-ui
 
 BLOQUE 8 — Patrones + Configuración
@@ -779,6 +797,13 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.4 | 2026-05-19 | refactor-fsd-performance archivado. entities/ poblada (product, order, address, cart-item). widgets/ con Navbar/Footer/Sidebar. React.memo + useCallback en 4 componentes. Efectos corregidos (CheckoutPage, SearchInput). 452/452 tests. PRÓXIMO: backend-admin-users-endpoints (BLOQUE 7). |
+| 5.3 | 2026-05-19 | fix-build-critical archivado. Creado src/shared/lib/utils.ts con cn() — 14 imports desbloqueados. build roto reparado. PRÓXIMO: refactor-fsd-performance (FSD + memoización). |
+| 5.2 | 2026-05-18 | admin-users-management-ui archivado. UsersTable semántica (desktop + cards mobile), UserEditModal 409 inline, UserStatusModal confirmación + 409 toast, UserFiltersPanel. Zustand usersFiltersStore sin persist. 3 hooks TanStack Query (useAdminUsers debounce 300ms, useUpdateUser, useToggleUserStatus). UsersPage lazy-loaded. 576/576 vitest. PRÓXIMO: admin-products-management-ui. |
+| 5.1 | 2026-05-18 | frontend-admin-dashboard-ui archivado. Dashboard completo: 4 hooks TanStack Query, 5 componentes Recharts (KPI/LineChart/BarChart/PieChart), DateRangeSelector. Bugfixes: endpoint /resumen, /admin/configuracion placeholder, ADMIN_LINKS sin duplicado. 545/545 vitest. PRÓXIMO: admin-users-management-ui. |
+| 5.0 | 2026-05-18 | admin-dashboard-metrics archivado. 4 endpoints métricas: resumen (KPIs), ventas (DATE_TRUNC), top-productos (SUM cantidad, excluye CANCELADO), pedidos-por-estado (6 estados always-present). Cache-Control max-age=300. 27/27 pytest. PRÓXIMO: frontend-admin-dashboard-ui. |
+| 4.9 | 2026-05-18 | backend-admin-users-endpoints archivado. GET/PUT/PATCH /api/v1/admin/usuarios. Protección último ADMIN, revocación tokens en cambio de rol/desactivación. 25/25 pytest. PRÓXIMO: admin-users-management-ui o admin-dashboard-metrics. |
+| 4.8 | 2026-05-18 | frontend-catalog-search-images-refactor archivado. Búsqueda client-side debounced 300ms, imágenes Unsplash en seed, ProductCard refactorizado. 522/522 vitest. PRÓXIMO: BLOQUE 7 backend-admin-users-endpoints. |
 | 4.7 | 2026-05-18 | frontend-payment-status-polling archivado. Hook polling 30s + retry exp + spinner ARIA. 503/503 vitest. BLOQUE 6 completo. PRÓXIMO: BLOQUE 7 — backend-admin-users-endpoints. |
 | 4.6 | 2026-05-18 | frontend-payment-checkout-fixes archivado. 3 bugfixes: teléfono regex, onError mutations, CartDrawer bloqueado en /checkout. PRÓXIMO: frontend-payment-status-polling. |
 | 4.5 | 2026-05-18 | frontend-payment-checkout-ui archivado. CheckoutPage completa + PaymentMethodSelector + MercadoPagoButton + PaymentStatusModal + paymentStore. 491/491 vitest. |

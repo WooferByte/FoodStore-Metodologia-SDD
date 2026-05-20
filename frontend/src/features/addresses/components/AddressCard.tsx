@@ -20,7 +20,7 @@ import {
   CardContent,
   CardFooter,
 } from '@/shared/components/ui/Card'
-import type { DireccionResponse } from '@/features/addresses/types'
+import type { DireccionResponse } from '@\/entities/address'
 
 export interface AddressCardProps {
   address: DireccionResponse

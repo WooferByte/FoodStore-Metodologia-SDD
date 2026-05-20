@@ -1,23 +1,8 @@
-/**
- * Sidebar component tests.
- *
- * Mocks:
- *   - useUIStore: controls sidebarOpen state
- *   - useNavLinks: returns fixed test links
- *   - useAuthStore: required by useNavLinks internals (mocked transitively)
- *
- * Tests:
- *   - Renders navigation links when sidebarOpen=true
- *   - Sidebar panel has -translate-x-full class when sidebarOpen=false
- *   - Active link has aria-current="page"
- */
-
 import '@testing-library/jest-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
-// Mock stores and hooks BEFORE importing Sidebar
 vi.mock('@/store/uiStore', () => ({
   useUIStore: vi.fn(),
 }))
@@ -47,14 +32,12 @@ function mockUIState(sidebarOpen: boolean) {
     }
     return selector(state)
   })
-  // Also mock setState for the auto-open useEffect
   ;(useUIStore as unknown as { setState: (s: unknown) => void }).setState = vi.fn()
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
   mockUseNavLinks.mockReturnValue(testLinks)
-  // Mock matchMedia to return false (mobile) by default
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: vi.fn().mockImplementation((query: string) => ({

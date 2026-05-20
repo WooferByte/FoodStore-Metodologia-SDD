@@ -11,7 +11,7 @@
  */
 
 import { useMemo } from 'react'
-import type { Product, Ingredient } from '@/features/products/types'
+import type { Product, Ingredient } from '@\/entities/product'
 
 /**
  * Allergen item for filter UI

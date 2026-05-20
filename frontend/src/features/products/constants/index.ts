@@ -11,7 +11,7 @@
 export const ITEMS_PER_PAGE = 20
 
 /** Debounce delay for search input (milliseconds) */
-export const SEARCH_DEBOUNCE_DELAY = 250
+export const SEARCH_DEBOUNCE_DELAY = 300
 
 /** API request timeout (milliseconds) */
 export const API_TIMEOUT = 5000
@@ -62,16 +62,16 @@ export const QUERY_KEYS = {
  * Error messages
  */
 export const ERROR_MESSAGES = {
-  LOAD_FAILED: 'Failed to load products. Please try again.',
-  NO_INTERNET: 'No internet connection',
-  TIMEOUT: 'Request timed out. Please try again.',
-  NO_PRODUCTS: 'No products found',
-  ADD_TO_CART_FAILED: 'Failed to add product to cart',
+  LOAD_FAILED: 'Error al cargar los productos. Intente nuevamente.',
+  NO_INTERNET: 'Sin conexión a internet',
+  TIMEOUT: 'La solicitud tardó demasiado. Intente nuevamente.',
+  NO_PRODUCTS: 'No se encontraron productos',
+  ADD_TO_CART_FAILED: 'Error al agregar el producto al carrito',
 } as const
 
 /**
  * Success messages
  */
 export const SUCCESS_MESSAGES = {
-  ADDED_TO_CART: 'Added to cart!',
+  ADDED_TO_CART: '¡Agregado al carrito!',
 } as const

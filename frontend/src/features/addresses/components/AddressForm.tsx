@@ -19,7 +19,7 @@
 import { useState, useEffect } from 'react'
 import { Input } from '@/shared/components/ui/Input'
 import { Button } from '@/shared/components/ui/Button'
-import type { AddressFormData, DireccionCreate, DireccionResponse } from '@/features/addresses/types'
+import type { AddressFormData, DireccionCreate, DireccionResponse } from '@\/entities/address'
 
 export interface AddressFormProps {
   initialData?: DireccionResponse

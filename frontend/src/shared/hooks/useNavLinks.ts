@@ -45,7 +45,6 @@ const PEDIDOS_LINKS: NavLink[] = [
 
 const ADMIN_LINKS: NavLink[] = [
   { label: 'Catálogo', to: '/catalog' },
-  { label: 'Mis Pedidos', to: '/orders' },
   { label: 'Usuarios', to: '/admin/usuarios' },
   { label: 'Pedidos', to: '/admin/pedidos' },
   { label: 'Métricas', to: '/admin/metricas' },

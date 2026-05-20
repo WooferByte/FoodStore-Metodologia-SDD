@@ -7,6 +7,7 @@
  * - Zero hardcoded colors — all via @theme tokens.
  */
 
+import { memo } from 'react'
 import { cn } from '@/shared/lib/utils'
 import {
   ORDER_STATUS_MAP,
@@ -18,7 +19,7 @@ export interface OrderStatusBadgeProps {
   className?: string
 }
 
-export function OrderStatusBadge({ statusId, className }: OrderStatusBadgeProps) {
+export const OrderStatusBadge = memo(function OrderStatusBadge({ statusId, className }: OrderStatusBadgeProps) {
   const meta = ORDER_STATUS_MAP[statusId] ?? UNKNOWN_STATUS
 
   return (
@@ -35,4 +36,4 @@ export function OrderStatusBadge({ statusId, className }: OrderStatusBadgeProps)
       {meta.label}
     </span>
   )
-}
+})

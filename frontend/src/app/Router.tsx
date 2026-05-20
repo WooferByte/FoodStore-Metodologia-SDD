@@ -19,6 +19,8 @@ const MyOrdersPage      = lazy(() => import('@/pages/MyOrdersPage'))
 const OrdersPanelPage   = lazy(() => import('@/pages/OrdersPanelPage'))
 // Order detail page (change: frontend-orders-detail-ui)
 const OrderDetailPage   = lazy(() => import('@/pages/OrderDetailPage'))
+// Admin users management page (change: admin-users-management-ui)
+const UsersPage         = lazy(() => import('@/pages/UsersPage'))
 
 /**
  * Router — defines all application routes.
@@ -72,9 +74,14 @@ export default function Router() {
 
         {/* ── ADMIN-only routes ─────────────────────────────── */}
         <Route element={<ProtectedRoute requiredRoles={['ADMIN']} />}>
-          <Route path="/admin/usuarios" element={<Admin />} />
+          <Route path="/admin/usuarios" element={<UsersPage />} />
           <Route path="/admin/metricas" element={<Admin />} />
-          <Route path="/admin/configuracion" element={<Admin />} />
+          <Route path="/admin/configuracion" element={
+            <div className="p-6 space-y-2">
+              <h1 className="text-2xl font-bold text-foreground">Configuración</h1>
+              <p className="text-muted-foreground">Próximamente disponible.</p>
+            </div>
+          } />
           {/* General admin dashboard */}
           <Route path="/admin" element={<Admin />} />
         </Route>
