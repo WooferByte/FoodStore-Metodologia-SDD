@@ -29,7 +29,7 @@ router = APIRouter(prefix="/ingredientes", tags=["Ingredientes"])
 
 
 @router.get(
-    "/",
+    "",
     response_model=list[IngredienteResponse],
     summary="List ingredients",
     description=(
@@ -70,7 +70,7 @@ async def get_ingrediente(
 
 
 @router.post(
-    "/",
+    "",
     response_model=IngredienteResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create an ingredient",
