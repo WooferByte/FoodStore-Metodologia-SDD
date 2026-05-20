@@ -110,6 +110,10 @@ async def list_productos(
         default=None,
         description="Filter products by category ID(s). Comma-separated for multiple IDs (e.g. '3,5').",
     ),
+    disponible: Optional[bool] = Query(
+        default=None,
+        description="Filter by disponibilidad. Set false to show unavailable products (admin views).",
+    ),
     page: int = Query(default=1, ge=1, description="Page number (1-based)."),
     size: int = Query(default=20, ge=1, le=100, description="Items per page (max 100)."),
     skip: int = 0,
@@ -181,6 +185,7 @@ async def list_productos(
             excluir_alergenos=alergeno_ids,
             q=q,
             categoria_id=categoria_id,
+            disponible=disponible,
             page=page,
             size=size,
         )

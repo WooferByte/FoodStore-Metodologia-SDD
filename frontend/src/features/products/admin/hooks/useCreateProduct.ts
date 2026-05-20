@@ -19,6 +19,7 @@ export function useCreateProduct() {
       queryClient.invalidateQueries({ queryKey: [ADMIN_PRODUCTS_QUERY_KEY], exact: false })
       queryClient.invalidateQueries({ queryKey: ['products'], exact: false })
       queryClient.invalidateQueries({ queryKey: ['productDetail'], exact: false })
+      queryClient.invalidateQueries({ queryKey: ['admin-stock-products'], exact: false })
     },
   })
 }

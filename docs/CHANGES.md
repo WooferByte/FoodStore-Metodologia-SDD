@@ -1,7 +1,7 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-05-20 (admin-categories-management-ui archivado)
+> **Última actualización**: 2026-05-20 (admin-stock-management-ui archivado)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
 > **Versión mapa**: 5.0 — Estado real sincronizado
 
@@ -606,13 +606,21 @@ Dashboard admin completo con métricas. `features/metrics/`: tipos, constantes (
 
 ---
 
-### ❌ `admin-products-management-ui`
+### ✅ `admin-products-management-ui` (archivado 2026-05-20)
+
+CRUD completo de productos admin: ProductsTable con paginación, filtros por categoría/ingredientes/estado, ProductFormModal con selector multi-categoría y multi-ingrediente, ProductDeleteModal, 19 tests. Fixes: relaciones N:M en modelos, serialización manual de ProductoResponse, filtro multi-categoría con CTE recursiva, invalidación cruzada de caché admin→catálogo con `exact: false` en TanStack Query, fix queryKey en ProductDetail, fix null descripcion en useCatalogSearch.
+Evidencia: `openspec/changes/archive/2026-05-20-admin-products-management-ui/`
+
 **Skills**: `frontend-design`, `tailwind-design-system`
 **Dependencias**: `products-crud-core`, `products-categories-association`, `products-ingredients-association`, `frontend-layout-components-shared`
 
 ---
 
-### ❌ `admin-stock-management-ui`
+### ✅ `admin-stock-management-ui` (archivado 2026-05-20)
+
+Página `/admin/stock` para gestión rápida de stock: AdminStockTable con badges semánticos (error/warning/success), búsqueda debounced 300ms, filtro por disponibilidad, StockEditModal con stock_cantidad + toggle disponible, 28 tests. Fixes: filtro disponible propagado por backend (repository/service/router), invalidación cruzada Products↔Stock, RN-STOCK01 (stock=0 → disponible=false).
+Evidencia: `openspec/changes/archive/2026-05-20-admin-stock-management-ui/`
+
 **Skills**: `frontend-design`, `tailwind-design-system`
 **Dependencias**: `admin-products-management-ui`
 
@@ -773,8 +781,8 @@ BLOQUE 7 — Admin
 ├─ ✅ admin-dashboard-metrics
 ├─ ✅ frontend-admin-dashboard-ui
 ├─ ✅ admin-categories-management-ui
-├─ ❌ admin-products-management-ui
-├─ ❌ admin-stock-management-ui
+├─ ✅ admin-products-management-ui
+├─ ✅ admin-stock-management-ui
 ├─ ✅ admin-users-management-ui
 └─ ❌ admin-ingredients-management-ui
 
@@ -797,6 +805,8 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.7 | 2026-05-20 | admin-stock-management-ui archivado. Página /admin/stock con tabla + badges semánticos + modal edición. Fixes: filtro disponible backend, invalidación cruzada Products↔Stock, RN-STOCK01 auto-desactivar. PRÓXIMO: admin-ingredients-management-ui (BLOQUE 7). |
+| 5.6 | 2026-05-20 | admin-products-management-ui archivado. CRUD admin productos completo: tabla con paginación + filtros, formulario multi-categoría/ingrediente, delete modal, 19 tests. Fixes: relaciones N:M, CTE recursiva, invalidación cruzada caché, fix null descripcion búsqueda. PRÓXIMO: admin-ingredients-management-ui o admin-stock-management-ui (BLOQUE 7). |
 | 5.5 | 2026-05-20 | admin-categories-management-ui archivado. CRUD admin categorías jerárquicas: tabla expandible, crear/editar/eliminar, búsqueda client-side, ruta `/admin/categorias`. 8 tests. PRÓXIMO: admin-products-management-ui. |
 | 5.4 | 2026-05-19 | refactor-fsd-performance archivado. entities/ poblada (product, order, address, cart-item). widgets/ con Navbar/Footer/Sidebar. React.memo + useCallback en 4 componentes. Efectos corregidos (CheckoutPage, SearchInput). 452/452 tests. PRÓXIMO: backend-admin-users-endpoints (BLOQUE 7). |
 | 5.3 | 2026-05-19 | fix-build-critical archivado. Creado src/shared/lib/utils.ts con cn() — 14 imports desbloqueados. build roto reparado. PRÓXIMO: refactor-fsd-performance (FSD + memoización). |

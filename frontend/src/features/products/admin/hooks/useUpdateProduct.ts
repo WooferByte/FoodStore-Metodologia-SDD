@@ -19,6 +19,8 @@ export function useUpdateProduct() {
       queryClient.invalidateQueries({ queryKey: [ADMIN_PRODUCTS_QUERY_KEY], exact: false })
       queryClient.invalidateQueries({ queryKey: ['products'], exact: false })
       queryClient.invalidateQueries({ queryKey: ['productDetail'], exact: false })
+      // Invalidar también stock — si se cambió disponible, la tabla de stock debe reflejarlo
+      queryClient.invalidateQueries({ queryKey: ['admin-stock-products'], exact: false })
     },
   })
 }

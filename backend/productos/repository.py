@@ -87,6 +87,7 @@ class ProductoRepository(BaseRepository[Producto]):
         q: Optional[str] = None,
         categoria_id: Optional[str] = None,
         alergeno_ids: list[int] = [],
+        disponible: Optional[bool] = None,
     ):
         """
         Build the shared base SELECT statement with all active filters applied.
@@ -95,8 +96,10 @@ class ProductoRepository(BaseRepository[Producto]):
         clauses (DRY — avoids count/list divergence bugs).
 
         Applies:
-        - eliminado_en IS NULL (always)
-        - disponible = true when not incluir_eliminados (D-05: RN-CA08 correctness fix)
+        - eliminado_en IS NULL (always, unless incluir_eliminados=True)
+        - disponible filter: explicit value takes precedence;
+          when None, defaults to True for public catalog (RN-CA08);
+          no filter when incluir_eliminados=True (admin full view)
         - ILIKE on nombre OR descripcion if q is non-empty (D-01)
         - JOIN on ProductoCategoria + DISTINCT if categoria_id is given (D-02)
         - NOT IN subquery for alergeno exclusion if alergeno_ids is non-empty
@@ -106,6 +109,9 @@ class ProductoRepository(BaseRepository[Producto]):
             q: Optional ILIKE search string for nombre/descripcion.
             categoria_id: Optional comma-separated category ID(s) filter via pivot JOIN.
             alergeno_ids: Allergen ingredient IDs to exclude (NOT IN subquery).
+            disponible: Explicit disponible filter. When None, defaults to True
+                for non-deleted products (public catalog). When incluir_eliminados=True
+                and disponible=None, no filter is applied (admin full view).
 
         Returns:
             SQLAlchemy Select statement (no OFFSET/LIMIT applied).
@@ -114,6 +120,11 @@ class ProductoRepository(BaseRepository[Producto]):
 
         if not incluir_eliminados:
             stmt = stmt.where(Producto.eliminado_en.is_(None))
+
+        # Disponible filter: explicit value overrides default
+        if disponible is not None:
+            stmt = stmt.where(Producto.disponible.is_(disponible))
+        elif not incluir_eliminados:
             # D-05: public list filters disponible=true per RN-CA08
             stmt = stmt.where(Producto.disponible.is_(True))
 
@@ -156,6 +167,7 @@ class ProductoRepository(BaseRepository[Producto]):
         q: Optional[str] = None,
         categoria_id: Optional[str] = None,
         alergeno_ids: list[int] = [],
+        disponible: Optional[bool] = None,
     ) -> list[Producto]:
         """
         Return paginated list of products with all optional filters applied.
@@ -171,10 +183,13 @@ class ProductoRepository(BaseRepository[Producto]):
             skip: Pagination offset.
             limit: Maximum records to return (capped at 1000).
             incluir_eliminados: If False (default), only return products with
-                eliminado_en IS NULL and disponible = true (RN-CA08).
+                eliminado_en IS NULL (and disponible=true by default per RN-CA08).
             q: Optional ILIKE search string for nombre/descripcion.
             categoria_id: Optional comma-separated category ID(s) filter.
             alergeno_ids: List of ingrediente IDs to exclude.
+            disponible: Explicit disponible filter. When None, defaults to True
+                for non-deleted products. Override with False to show unavailable
+                products.
 
         Returns:
             List of Producto instances ordered by nombre.
@@ -190,6 +205,7 @@ class ProductoRepository(BaseRepository[Producto]):
             q=q,
             categoria_id=categoria_id,
             alergeno_ids=alergeno_ids,
+            disponible=disponible,
         )
         stmt = stmt.offset(skip).limit(min(limit, 1000))
         result = await self.session.execute(stmt)
@@ -254,6 +270,7 @@ class ProductoRepository(BaseRepository[Producto]):
         q: Optional[str] = None,
         categoria_id: Optional[str] = None,
         alergeno_ids: list[int] = [],
+        disponible: Optional[bool] = None,
     ) -> int:
         """
         Return the total count of products matching the given filters.
@@ -267,6 +284,7 @@ class ProductoRepository(BaseRepository[Producto]):
             q: Optional ILIKE search string.
             categoria_id: Optional comma-separated category ID(s) filter.
             alergeno_ids: Allergen ingredient IDs to exclude.
+            disponible: Explicit disponible filter (same semantics as list_active).
 
         Returns:
             Integer count of matching products.
@@ -282,6 +300,7 @@ class ProductoRepository(BaseRepository[Producto]):
             q=q,
             categoria_id=categoria_id,
             alergeno_ids=alergeno_ids,
+            disponible=disponible,
         )
         # Wrap as subquery and count — ensures DISTINCT is respected
         subq = base.subquery()
