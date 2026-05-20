@@ -24,7 +24,7 @@ Adds:
 
 from typing import Optional
 
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import delete, func, or_, select, text as sa_text
 
 from core.models import Categoria, Ingrediente, Producto, ProductoCategoria, ProductoIngrediente
 from infrastructure.repositories.base_repository import BaseRepository
@@ -41,11 +41,51 @@ class ProductoRepository(BaseRepository[Producto]):
     def __init__(self, session) -> None:
         super().__init__(session, Producto)
 
+    def _parse_categoria_ids(self, categoria_id: Optional[str]) -> Optional[list[int]]:
+        """Parse comma-separated categoria_id string into list of ints."""
+        if categoria_id is None:
+            return None
+        if isinstance(categoria_id, int):
+            return [categoria_id]
+        if not isinstance(categoria_id, str):
+            return []
+        try:
+            ids = [int(x.strip()) for x in categoria_id.split(",") if x.strip()]
+            return ids if ids else None
+        except (ValueError, TypeError):
+            return []
+
+    async def _expand_with_child_ids(self, cat_ids: list[int]) -> list[int]:
+        """
+        Expand a list of category IDs to include all their descendant IDs.
+
+        This ensures filtering by a parent category also returns products
+        that are associated with any of its subcategories.
+        Uses a single recursive CTE query for all roots at once.
+        """
+        if not cat_ids:
+            return cat_ids
+        placeholders = ",".join(f":id{i}" for i in range(len(cat_ids)))
+        params = {f"id{i}": cid for i, cid in enumerate(cat_ids)}
+        sql = sa_text(
+            f"""
+            WITH RECURSIVE descendants AS (
+                SELECT id FROM categorias WHERE id IN ({placeholders})
+                UNION ALL
+                SELECT c.id FROM categorias c
+                JOIN descendants d ON c.padre_id = d.id
+            )
+            SELECT DISTINCT id FROM descendants
+            """
+        )
+        result = await self.session.execute(sql, params)
+        return [row[0] for row in result.fetchall()]
+
     def _build_base_stmt(
         self,
         incluir_eliminados: bool = False,
         q: Optional[str] = None,
-        categoria_id: Optional[int] = None,
+        categoria_id: Optional[str] = None,
         alergeno_ids: list[int] = [],
     ):
         """
@@ -64,7 +104,7 @@ class ProductoRepository(BaseRepository[Producto]):
         Args:
             incluir_eliminados: Include soft-deleted products (caller enforces role).
             q: Optional ILIKE search string for nombre/descripcion.
-            categoria_id: Optional category ID filter via pivot JOIN.
+            categoria_id: Optional comma-separated category ID(s) filter via pivot JOIN.
             alergeno_ids: Allergen ingredient IDs to exclude (NOT IN subquery).
 
         Returns:
@@ -86,12 +126,13 @@ class ProductoRepository(BaseRepository[Producto]):
                 )
             )
 
-        if categoria_id is not None:
-            # D-02: JOIN on pivot table + DISTINCT to avoid duplicate rows
+        cat_ids = self._parse_categoria_ids(categoria_id)
+        if cat_ids is not None:
+            # D-02: JOIN on pivot table + DISTINCT + IN for multi-category support
             stmt = (
                 stmt
                 .join(ProductoCategoria, ProductoCategoria.producto_id == Producto.id)
-                .where(ProductoCategoria.categoria_id == categoria_id)
+                .where(ProductoCategoria.categoria_id.in_(cat_ids))
                 .distinct()
             )
 
@@ -113,7 +154,7 @@ class ProductoRepository(BaseRepository[Producto]):
         limit: int = 100,
         incluir_eliminados: bool = False,
         q: Optional[str] = None,
-        categoria_id: Optional[int] = None,
+        categoria_id: Optional[str] = None,
         alergeno_ids: list[int] = [],
     ) -> list[Producto]:
         """
@@ -123,18 +164,27 @@ class ProductoRepository(BaseRepository[Producto]):
         (D-04). Supports text search (q), category filter (categoria_id), allergen
         exclusion (alergeno_ids), and soft-delete inclusion (incluir_eliminados).
 
+        When filtering by categoria_id, also includes products from descendant
+        subcategories (parent includes children).
+
         Args:
             skip: Pagination offset.
             limit: Maximum records to return (capped at 1000).
             incluir_eliminados: If False (default), only return products with
                 eliminado_en IS NULL and disponible = true (RN-CA08).
             q: Optional ILIKE search string for nombre/descripcion.
-            categoria_id: Optional category ID filter.
+            categoria_id: Optional comma-separated category ID(s) filter.
             alergeno_ids: List of ingrediente IDs to exclude.
 
         Returns:
             List of Producto instances ordered by nombre.
         """
+        # Expand category IDs with children so parent filter includes subcategories
+        cat_ids = self._parse_categoria_ids(categoria_id)
+        if cat_ids:
+            expanded = await self._expand_with_child_ids(cat_ids)
+            categoria_id = ",".join(str(cid) for cid in expanded)
+
         stmt = self._build_base_stmt(
             incluir_eliminados=incluir_eliminados,
             q=q,
@@ -202,7 +252,7 @@ class ProductoRepository(BaseRepository[Producto]):
         self,
         incluir_eliminados: bool = False,
         q: Optional[str] = None,
-        categoria_id: Optional[int] = None,
+        categoria_id: Optional[str] = None,
         alergeno_ids: list[int] = [],
     ) -> int:
         """
@@ -215,12 +265,18 @@ class ProductoRepository(BaseRepository[Producto]):
         Args:
             incluir_eliminados: Include soft-deleted products.
             q: Optional ILIKE search string.
-            categoria_id: Optional category ID filter.
+            categoria_id: Optional comma-separated category ID(s) filter.
             alergeno_ids: Allergen ingredient IDs to exclude.
 
         Returns:
             Integer count of matching products.
         """
+        # Expand category IDs with children so parent filter includes subcategories
+        cat_ids = self._parse_categoria_ids(categoria_id)
+        if cat_ids:
+            expanded = await self._expand_with_child_ids(cat_ids)
+            categoria_id = ",".join(str(cid) for cid in expanded)
+
         base = self._build_base_stmt(
             incluir_eliminados=incluir_eliminados,
             q=q,

@@ -9,7 +9,7 @@
  *  2. roles ["CLIENT"]      → 5 client links
  *  3. roles ["STOCK"]       → 3 stock links
  *  4. roles ["PEDIDOS"]     → 1 panel pedidos link
- *  5. roles ["ADMIN"]       → 6 admin links
+ *  5. roles ["ADMIN"]       → 7 admin links
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -112,14 +112,15 @@ describe('useNavLinks hook', () => {
     expect(links[0].to).toBe('/admin/pedidos')
   })
 
-  it('5. roles ["ADMIN"] → returns 6 admin links (no Mis Pedidos)', () => {
+  it('5. roles ["ADMIN"] → returns 7 admin links (no Mis Pedidos)', () => {
     mockAuthState({ hasHydrated: true, roles: ['ADMIN'] })
 
     const { result } = renderHook(() => useNavLinks())
     const links = result.current
 
-    expect(links).toHaveLength(6)
+    expect(links).toHaveLength(7)
     const paths = links.map((l) => l.to)
+    expect(paths).toContain('/admin/productos')
     expect(paths).toContain('/admin/usuarios')
     expect(paths).toContain('/admin/categorias')
     expect(paths).toContain('/admin/metricas')

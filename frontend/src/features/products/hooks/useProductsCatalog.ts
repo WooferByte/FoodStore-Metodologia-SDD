@@ -25,7 +25,7 @@ function buildProductsQueryParams(filters: CatalogFilters, size: number): URLSea
   const params = new URLSearchParams()
 
   if (filters.categoryIds.length > 0) {
-    params.append('categoria_id', filters.categoryIds[0])
+    params.append('categoria_id', filters.categoryIds.join(','))
   }
 
   if (filters.search.trim()) {

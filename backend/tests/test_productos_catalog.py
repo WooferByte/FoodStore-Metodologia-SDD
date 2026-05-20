@@ -309,7 +309,8 @@ class TestProductoRepositoryListActiveConQ:
         result = await repo.list_active(skip=0, limit=20, categoria_id=3)
 
         assert isinstance(result, list)
-        mock_session.execute.assert_awaited_once()
+        # execute is called twice: once for _expand_with_child_ids (CTE), once for main query
+        assert mock_session.execute.await_count == 2
 
 
 # ---------------------------------------------------------------------------

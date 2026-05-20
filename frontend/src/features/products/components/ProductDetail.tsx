@@ -45,13 +45,13 @@ export function ProductDetail({
 
   // Fetch full product data (with ingredientes) when modal opens
   const { data: fullProduct } = useQuery<Product>({
-    queryKey: ['product-detail', product?.id],
+    queryKey: ['productDetail', product?.id],
     queryFn: async () => {
       const res = await apiClient.get<Product>(`/api/v1/productos/${product!.id}`)
       return res.data
     },
     enabled: isOpen && product != null,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 1, // 1 minute — admin changes need to be visible sooner
   })
 
   // Merge: use fresh data when available, fall back to catalog data

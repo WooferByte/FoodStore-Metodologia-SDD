@@ -72,9 +72,9 @@ async def list_productos(
     limit: int = 100,
     incluir_eliminados: bool = False,
     current_user: Optional[Usuario] = None,
-    excluir_alergenos: list[int] = [],
+    excluir_alergenos: Optional[list[int]] = None,
     q: Optional[str] = None,
-    categoria_id: Optional[int] = None,
+    categoria_id: Optional[str] = None,
     page: int = 1,
     size: int = 20,
 ) -> PaginatedProductosResponse:
@@ -145,8 +145,32 @@ async def list_productos(
 
     pages = math.ceil(total / size) if size > 0 else 0
 
+    # Enrich each product with categories and ingredients (batch load)
+    producto_ids = [p.id for p in productos if p.id is not None]
+    cat_map: dict[int, list[Categoria]] = {}
+    ing_map: dict[int, list[tuple[Ingrediente, bool]]] = {}
+    for pid in producto_ids:
+        cat_map[pid] = await uow.producto_categorias.get_categorias(pid)
+        ing_map[pid] = await uow.producto_ingredientes.get_ingredientes(pid)
+
+    items = [
+        ProductoResponse(
+            id=p.id,
+            nombre=p.nombre,
+            descripcion=p.descripcion,
+            precio_base=p.precio_base,
+            stock_cantidad=p.stock_cantidad,
+            disponible=p.disponible,
+            imagen_url=p.imagen_url,
+            creado_en=p.creado_en,
+            categorias=_categorias_to_compacta(cat_map.get(p.id, [])),
+            ingredientes=_ingredientes_to_compacto(ing_map.get(p.id, [])),
+        )
+        for p in productos
+    ]
+
     return PaginatedProductosResponse(
-        items=productos,
+        items=items,
         total=total,
         page=page,
         size=size,

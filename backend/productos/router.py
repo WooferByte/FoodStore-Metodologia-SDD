@@ -106,10 +106,9 @@ async def list_productos(
         max_length=200,
         description="ILIKE search on nombre and descripción.",
     ),
-    categoria_id: Optional[int] = Query(
+    categoria_id: Optional[str] = Query(
         default=None,
-        ge=1,
-        description="Filter products by category ID.",
+        description="Filter products by category ID(s). Comma-separated for multiple IDs (e.g. '3,5').",
     ),
     page: int = Query(default=1, ge=1, description="Page number (1-based)."),
     size: int = Query(default=20, ge=1, le=100, description="Items per page (max 100)."),
@@ -148,6 +147,23 @@ async def list_productos(
                     "title": "Unprocessable Entity",
                     "status": 422,
                     "detail": "excluirAlergenos supports at most 50 IDs per request",
+                },
+            )
+
+    # Validate categoria_id: must be comma-separated integers
+    if categoria_id is not None:
+        try:
+            for part in categoria_id.split(","):
+                if part.strip():
+                    int(part.strip())
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "type": "about:blank",
+                    "title": "Unprocessable Entity",
+                    "status": 422,
+                    "detail": "categoria_id must be an integer or comma-separated integers (e.g. '3' or '3,5')",
                 },
             )
 
@@ -332,7 +348,19 @@ async def create_producto(
 ) -> ProductoResponse:
     """Create and persist a new Producto."""
     async with uow:
-        return await service.create_producto(uow, data)
+        producto = await service.create_producto(uow, data)
+        return ProductoResponse(
+            id=producto.id,
+            nombre=producto.nombre,
+            descripcion=producto.descripcion,
+            precio_base=producto.precio_base,
+            stock_cantidad=producto.stock_cantidad,
+            disponible=producto.disponible,
+            imagen_url=producto.imagen_url,
+            creado_en=producto.creado_en,
+            categorias=[],
+            ingredientes=[],
+        )
 
 
 @router.put(
@@ -353,7 +381,19 @@ async def update_producto(
 ) -> ProductoResponse:
     """Update an existing Producto — partial update."""
     async with uow:
-        return await service.update_producto(uow, producto_id, data)
+        producto = await service.update_producto(uow, producto_id, data)
+        return ProductoResponse(
+            id=producto.id,
+            nombre=producto.nombre,
+            descripcion=producto.descripcion,
+            precio_base=producto.precio_base,
+            stock_cantidad=producto.stock_cantidad,
+            disponible=producto.disponible,
+            imagen_url=producto.imagen_url,
+            creado_en=producto.creado_en,
+            categorias=[],
+            ingredientes=[],
+        )
 
 
 @router.delete(
@@ -396,4 +436,16 @@ async def patch_stock(
 ) -> ProductoResponse:
     """Update stock_cantidad for a Producto."""
     async with uow:
-        return await service.patch_stock(uow, producto_id, data)
+        producto = await service.patch_stock(uow, producto_id, data)
+        return ProductoResponse(
+            id=producto.id,
+            nombre=producto.nombre,
+            descripcion=producto.descripcion,
+            precio_base=producto.precio_base,
+            stock_cantidad=producto.stock_cantidad,
+            disponible=producto.disponible,
+            imagen_url=producto.imagen_url,
+            creado_en=producto.creado_en,
+            categorias=[],
+            ingredientes=[],
+        )
