@@ -1,7 +1,7 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-05-19 (refactor-fsd-performance archivado)
+> **Última actualización**: 2026-05-20 (admin-categories-management-ui archivado)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
 > **Versión mapa**: 5.0 — Estado real sincronizado
 
@@ -600,7 +600,7 @@ Dashboard admin completo con métricas. `features/metrics/`: tipos, constantes (
 
 ---
 
-### ❌ `admin-categories-management-ui`
+### ✅ `admin-categories-management-ui` (archivado 2026-05-20)
 **Skills**: `frontend-design`, `tailwind-design-system`
 **Dependencias**: `categories-crud-hierarchical`, `frontend-layout-components-shared`
 
@@ -772,7 +772,7 @@ BLOQUE 7 — Admin
 ├─ ✅ backend-admin-users-endpoints
 ├─ ✅ admin-dashboard-metrics
 ├─ ✅ frontend-admin-dashboard-ui
-├─ ❌ admin-categories-management-ui
+├─ ✅ admin-categories-management-ui
 ├─ ❌ admin-products-management-ui
 ├─ ❌ admin-stock-management-ui
 ├─ ✅ admin-users-management-ui
@@ -797,6 +797,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.5 | 2026-05-20 | admin-categories-management-ui archivado. CRUD admin categorías jerárquicas: tabla expandible, crear/editar/eliminar, búsqueda client-side, ruta `/admin/categorias`. 8 tests. PRÓXIMO: admin-products-management-ui. |
 | 5.4 | 2026-05-19 | refactor-fsd-performance archivado. entities/ poblada (product, order, address, cart-item). widgets/ con Navbar/Footer/Sidebar. React.memo + useCallback en 4 componentes. Efectos corregidos (CheckoutPage, SearchInput). 452/452 tests. PRÓXIMO: backend-admin-users-endpoints (BLOQUE 7). |
 | 5.3 | 2026-05-19 | fix-build-critical archivado. Creado src/shared/lib/utils.ts con cn() — 14 imports desbloqueados. build roto reparado. PRÓXIMO: refactor-fsd-performance (FSD + memoización). |
 | 5.2 | 2026-05-18 | admin-users-management-ui archivado. UsersTable semántica (desktop + cards mobile), UserEditModal 409 inline, UserStatusModal confirmación + 409 toast, UserFiltersPanel. Zustand usersFiltersStore sin persist. 3 hooks TanStack Query (useAdminUsers debounce 300ms, useUpdateUser, useToggleUserStatus). UsersPage lazy-loaded. 576/576 vitest. PRÓXIMO: admin-products-management-ui. |

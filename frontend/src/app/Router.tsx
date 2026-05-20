@@ -21,6 +21,8 @@ const OrdersPanelPage   = lazy(() => import('@/pages/OrdersPanelPage'))
 const OrderDetailPage   = lazy(() => import('@/pages/OrderDetailPage'))
 // Admin users management page (change: admin-users-management-ui)
 const UsersPage         = lazy(() => import('@/pages/UsersPage'))
+// Admin categories management page (change: admin-categories-management-ui)
+const CategoriesPage    = lazy(() => import('@/pages/CategoriesPage'))
 
 /**
  * Router — defines all application routes.
@@ -59,7 +61,7 @@ export default function Router() {
         {/* ── STOCK routes: require STOCK or ADMIN ──────────── */}
         <Route element={<ProtectedRoute requiredRoles={['STOCK', 'ADMIN']} />}>
           <Route path="/admin/productos" element={<Admin />} />
-          <Route path="/admin/categorias" element={<Admin />} />
+          <Route path="/admin/categorias" element={<CategoriesPage />} />
           <Route path="/admin/ingredientes" element={<Admin />} />
         </Route>
 
