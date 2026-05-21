@@ -21,6 +21,14 @@ const OrdersPanelPage   = lazy(() => import('@/pages/OrdersPanelPage'))
 const OrderDetailPage   = lazy(() => import('@/pages/OrderDetailPage'))
 // Admin users management page (change: admin-users-management-ui)
 const UsersPage         = lazy(() => import('@/pages/UsersPage'))
+// Admin categories management page (change: admin-categories-management-ui)
+const CategoriesPage    = lazy(() => import('@/pages/CategoriesPage'))
+// Admin products management page (change: admin-products-management-ui)
+const AdminProductsPage = lazy(() => import('@/pages/AdminProductsPage'))
+// Admin stock management page (change: admin-stock-management-ui)
+const AdminStockPage = lazy(() => import('@/pages/AdminStockPage'))
+// Admin ingredients management page (change: admin-ingredients-management-ui)
+const AdminIngredientsPage = lazy(() => import('@/pages/AdminIngredientsPage'))
 
 /**
  * Router — defines all application routes.
@@ -58,9 +66,10 @@ export default function Router() {
 
         {/* ── STOCK routes: require STOCK or ADMIN ──────────── */}
         <Route element={<ProtectedRoute requiredRoles={['STOCK', 'ADMIN']} />}>
-          <Route path="/admin/productos" element={<Admin />} />
-          <Route path="/admin/categorias" element={<Admin />} />
-          <Route path="/admin/ingredientes" element={<Admin />} />
+          <Route path="/admin/productos" element={<AdminProductsPage />} />
+          <Route path="/admin/stock" element={<AdminStockPage />} />
+          <Route path="/admin/categorias" element={<CategoriesPage />} />
+          <Route path="/admin/ingredientes" element={<AdminIngredientsPage />} />
         </Route>
 
         {/* ── PEDIDOS routes: require PEDIDOS or ADMIN ──────── */}

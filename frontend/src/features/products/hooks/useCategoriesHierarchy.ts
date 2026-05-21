@@ -34,9 +34,9 @@ export function useCategoriesHierarchy() {
       )
       return response.data
     },
-    // Long cache since categories are stable
-    staleTime: 30 * 60 * 1000, // 30 minutes
-    gcTime: 60 * 60 * 1000, // 60 minutes
+    // Categories can change via admin panel — keep fresh enough
+    staleTime: 5 * 60 * 1000, // 5 minutes (was 30min — too stale for admin updates)
+    gcTime: 10 * 60 * 1000, // 10 minutes
     
     // Retry strategy
     retry: 2,

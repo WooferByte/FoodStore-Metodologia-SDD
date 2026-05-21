@@ -35,6 +35,7 @@ const CLIENT_LINKS: NavLink[] = [
 
 const STOCK_LINKS: NavLink[] = [
   { label: 'Productos', to: '/admin/productos' },
+  { label: 'Stock', to: '/admin/stock' },
   { label: 'Categorías', to: '/admin/categorias' },
   { label: 'Ingredientes', to: '/admin/ingredientes' },
 ]
@@ -46,6 +47,10 @@ const PEDIDOS_LINKS: NavLink[] = [
 const ADMIN_LINKS: NavLink[] = [
   { label: 'Catálogo', to: '/catalog' },
   { label: 'Usuarios', to: '/admin/usuarios' },
+  { label: 'Productos', to: '/admin/productos' },
+  { label: 'Stock', to: '/admin/stock' },
+  { label: 'Categorías', to: '/admin/categorias' },
+  { label: 'Ingredientes', to: '/admin/ingredientes' },
   { label: 'Pedidos', to: '/admin/pedidos' },
   { label: 'Métricas', to: '/admin/metricas' },
   { label: 'Configuración', to: '/admin/configuracion' },

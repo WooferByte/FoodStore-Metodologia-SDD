@@ -72,9 +72,10 @@ async def list_productos(
     limit: int = 100,
     incluir_eliminados: bool = False,
     current_user: Optional[Usuario] = None,
-    excluir_alergenos: list[int] = [],
+    excluir_alergenos: Optional[list[int]] = None,
     q: Optional[str] = None,
-    categoria_id: Optional[int] = None,
+    categoria_id: Optional[str] = None,
+    disponible: Optional[bool] = None,
     page: int = 1,
     size: int = 20,
 ) -> PaginatedProductosResponse:
@@ -82,7 +83,8 @@ async def list_productos(
     Return a paginated envelope of products ordered by nombre.
 
     If incluir_eliminados=True, enforces that the caller has STOCK or ADMIN role.
-    Supports text search (q), category filter (categoria_id), and allergen exclusion.
+    Supports text search (q), category filter (categoria_id), allergen exclusion,
+    and disponible filter.
     Returns PaginatedProductosResponse { items, total, page, size, pages }.
 
     Args:
@@ -94,6 +96,9 @@ async def list_productos(
         excluir_alergenos: List of ingrediente IDs to exclude (allergen filter).
         q: Optional ILIKE search string for nombre/descripcion.
         categoria_id: Optional category ID filter.
+        disponible: Optional disponible filter. When None, defaults to True
+            for non-deleted products (public catalog). Set to False to show
+            unavailable products (admin views).
         page: 1-based page number (used to derive skip when provided via router).
         size: Page size (used as limit when provided via router).
 
@@ -134,6 +139,7 @@ async def list_productos(
         q=q,
         categoria_id=categoria_id,
         alergeno_ids=excluir_alergenos,
+        disponible=disponible,
     )
 
     total = await uow.productos.count_active(
@@ -141,12 +147,37 @@ async def list_productos(
         q=q,
         categoria_id=categoria_id,
         alergeno_ids=excluir_alergenos,
+        disponible=disponible,
     )
 
     pages = math.ceil(total / size) if size > 0 else 0
 
+    # Enrich each product with categories and ingredients (batch load)
+    producto_ids = [p.id for p in productos if p.id is not None]
+    cat_map: dict[int, list[Categoria]] = {}
+    ing_map: dict[int, list[tuple[Ingrediente, bool]]] = {}
+    for pid in producto_ids:
+        cat_map[pid] = await uow.producto_categorias.get_categorias(pid)
+        ing_map[pid] = await uow.producto_ingredientes.get_ingredientes(pid)
+
+    items = [
+        ProductoResponse(
+            id=p.id,
+            nombre=p.nombre,
+            descripcion=p.descripcion,
+            precio_base=p.precio_base,
+            stock_cantidad=p.stock_cantidad,
+            disponible=p.disponible,
+            imagen_url=p.imagen_url,
+            creado_en=p.creado_en,
+            categorias=_categorias_to_compacta(cat_map.get(p.id, [])),
+            ingredientes=_ingredientes_to_compacto(ing_map.get(p.id, [])),
+        )
+        for p in productos
+    ]
+
     return PaginatedProductosResponse(
-        items=productos,
+        items=items,
         total=total,
         page=page,
         size=size,
@@ -260,6 +291,10 @@ async def update_producto(
     update_data = data.model_dump(exclude_none=True)
     for field, value in update_data.items():
         setattr(producto, field, value)
+
+    # RN-STOCK01: stock = 0 → auto-desactivar producto
+    if "stock_cantidad" in update_data and update_data["stock_cantidad"] == 0:
+        producto.disponible = False
 
     await uow.productos.update(producto)
     return producto
@@ -525,5 +560,8 @@ async def patch_stock(
     """
     producto = await _get_or_404(uow, producto_id)
     producto.stock_cantidad = data.stock_cantidad
+    # RN-STOCK01: stock = 0 → auto-desactivar producto
+    if data.stock_cantidad == 0:
+        producto.disponible = False
     await uow.productos.update(producto)
     return producto

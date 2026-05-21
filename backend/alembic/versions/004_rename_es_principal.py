@@ -8,8 +8,8 @@ Create Date: 2026-05-11 00:00:00.000000
 """
 from alembic import op
 
-revision = "004_rename_es_principal_to_es_predeterminada"
-down_revision = "003_add_missing_fields"
+revision = "004"
+down_revision = "003"
 branch_labels = None
 depends_on = None
 

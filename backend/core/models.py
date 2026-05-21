@@ -171,61 +171,6 @@ class DireccionEntrega(SQLModel, table=True):
     eliminado_en: Optional[datetime] = None
 
 
-class Categoria(SQLModel, table=True):
-    """
-    Product category entity with hierarchical support.
-
-    Supports parent-child relationships for category trees.
-    """
-
-    __tablename__ = "categorias"
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    nombre: str = Field(unique=True, index=True, max_length=255)
-    descripcion: Optional[str] = None
-    padre_id: Optional[int] = Field(default=None, foreign_key="categorias.id")
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
-    actualizado_en: datetime = Field(default_factory=datetime.utcnow)
-    eliminado_en: Optional[datetime] = None
-
-
-class Producto(SQLModel, table=True):
-    """
-    Product entity for store inventory.
-
-    Stores product information including pricing, stock, and availability.
-    """
-
-    __tablename__ = "productos"
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    nombre: str = Field(index=True, max_length=255)
-    descripcion: Optional[str] = None
-    precio_base: Decimal = Field(decimal_places=2, max_digits=10)
-    stock_cantidad: int = 0
-    disponible: bool = True
-    imagen_url: Optional[str] = None
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
-    actualizado_en: datetime = Field(default_factory=datetime.utcnow)
-    eliminado_en: Optional[datetime] = None
-
-
-class Ingrediente(SQLModel, table=True):
-    """
-    Ingredient entity for product composition.
-
-    Tracks ingredients with allergen information.
-    """
-
-    __tablename__ = "ingredientes"
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    nombre: str = Field(unique=True, index=True, max_length=255)
-    es_alergeno: bool = False
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
-    eliminado_en: Optional[datetime] = None
-
-
 class ProductoCategoria(SQLModel, table=True):
     """
     N:M pivot table for Product-Category relationships.
@@ -251,6 +196,71 @@ class ProductoIngrediente(SQLModel, table=True):
     producto_id: int = Field(foreign_key="productos.id", primary_key=True)
     ingrediente_id: int = Field(foreign_key="ingredientes.id", primary_key=True)
     es_removible: bool = False
+
+
+class Categoria(SQLModel, table=True):
+    """
+    Product category entity with hierarchical support.
+
+    Supports parent-child relationships for category trees.
+    """
+
+    __tablename__ = "categorias"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    nombre: str = Field(unique=True, index=True, max_length=255)
+    descripcion: Optional[str] = None
+    padre_id: Optional[int] = Field(default=None, foreign_key="categorias.id")
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    actualizado_en: datetime = Field(default_factory=datetime.utcnow)
+    eliminado_en: Optional[datetime] = None
+
+    # Relationships
+    productos: List["Producto"] = Relationship(back_populates="categorias", link_model=ProductoCategoria)
+
+
+class Producto(SQLModel, table=True):
+    """
+    Product entity for store inventory.
+
+    Stores product information including pricing, stock, and availability.
+    """
+
+    __tablename__ = "productos"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    nombre: str = Field(index=True, max_length=255)
+    descripcion: Optional[str] = None
+    precio_base: Decimal = Field(decimal_places=2, max_digits=10)
+    stock_cantidad: int = 0
+    disponible: bool = True
+    imagen_url: Optional[str] = None
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    actualizado_en: datetime = Field(default_factory=datetime.utcnow)
+    eliminado_en: Optional[datetime] = None
+
+    # Relationships — N:M via ProductoCategoria and ProductoIngrediente pivot tables
+    categorias: List["Categoria"] = Relationship(back_populates="productos", link_model=ProductoCategoria)
+    ingredientes: List["Ingrediente"] = Relationship(back_populates="productos", link_model=ProductoIngrediente)
+
+
+class Ingrediente(SQLModel, table=True):
+    """
+    Ingredient entity for product composition.
+
+    Tracks ingredients with allergen information.
+    """
+
+    __tablename__ = "ingredientes"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    nombre: str = Field(unique=True, index=True, max_length=255)
+    es_alergeno: bool = False
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    eliminado_en: Optional[datetime] = None
+
+    # Relationships
+    productos: List["Producto"] = Relationship(back_populates="ingredientes", link_model=ProductoIngrediente)
 
 
 class Pedido(SQLModel, table=True):

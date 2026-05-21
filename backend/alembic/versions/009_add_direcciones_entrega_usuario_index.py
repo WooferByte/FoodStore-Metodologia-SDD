@@ -9,8 +9,8 @@ Create Date: 2026-05-14 00:00:00.000000
 """
 from alembic import op
 
-revision = "009_add_direcciones_entrega_usuario_index"
-down_revision = "008_add_productos_index"
+revision = "009"
+down_revision = "008"
 branch_labels = None
 depends_on = None
 

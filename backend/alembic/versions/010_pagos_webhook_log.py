@@ -10,8 +10,8 @@ Create Date: 2026-05-16 00:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 
-revision = "010_pagos_webhook_log"
-down_revision = "009_add_direcciones_entrega_usuario_index"
+revision = "010"
+down_revision = "009"
 branch_labels = None
 depends_on = None
 

@@ -64,6 +64,10 @@ build/
 *.sqlite
 *.sqlite3
 
+# Docker & Database volumes
+data/
+docker-volumes/
+
 # Log files
 *.log
 logs/

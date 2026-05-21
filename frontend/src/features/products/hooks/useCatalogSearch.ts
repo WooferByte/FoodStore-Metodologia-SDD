@@ -49,7 +49,7 @@ export function useCatalogSearch(
 
     const filtered = products.filter((product) => {
       const inNombre = normalize(product.nombre).includes(normalizedTerm)
-      const inDescripcion = normalize(product.descripcion).includes(normalizedTerm)
+      const inDescripcion = product.descripcion ? normalize(product.descripcion).includes(normalizedTerm) : false
       return inNombre || inDescripcion
     })
 

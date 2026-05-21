@@ -33,11 +33,31 @@ For detailed documentation, design decisions, and setup guides, see **[`docs/IND
 
 ## Quick Start
 
-### Prerequisites
-- Python 3.9 or higher
-- Node.js 16+ and npm/yarn
-- PostgreSQL 12+ (OR Docker + Docker Compose)
-- Git
+### ⚡ Super Quick: Automated Setup (Recommended)
+
+If you're on Windows or having Docker/database issues, use the automated setup script:
+
+**Windows (PowerShell):**
+```powershell
+.\setup-dev.ps1
+```
+
+**Mac/Linux (Bash):**
+```bash
+chmod +x setup-dev.sh
+./setup-dev.sh
+```
+
+This script will:
+- ✅ Clean up old Docker containers and volumes
+- ✅ Remove stale local database files
+- ✅ Start PostgreSQL container and wait for it to be ready
+- ✅ Run Alembic migrations
+- ✅ Seed the database with test data
+
+Then follow the printed instructions to start backend and frontend.
+
+---
 
 ### Getting Started - Option 1: Docker Compose (Recommended)
 

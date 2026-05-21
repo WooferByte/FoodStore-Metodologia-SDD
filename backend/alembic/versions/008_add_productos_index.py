@@ -10,8 +10,8 @@ Create Date: 2026-05-13 00:00:00.000000
 """
 from alembic import op
 
-revision = "008_add_productos_index"
-down_revision = "007_add_ingredientes_index"
+revision = "008"
+down_revision = "007"
 branch_labels = None
 depends_on = None
 
