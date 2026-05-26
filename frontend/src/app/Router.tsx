@@ -29,6 +29,8 @@ const AdminProductsPage = lazy(() => import('@/pages/AdminProductsPage'))
 const AdminStockPage = lazy(() => import('@/pages/AdminStockPage'))
 // Admin ingredients management page (change: admin-ingredients-management-ui)
 const AdminIngredientsPage = lazy(() => import('@/pages/AdminIngredientsPage'))
+// Admin system configuration page (change: frontend-system-configuration-ui)
+const AdminConfiguracionPage = lazy(() => import('@/pages/AdminConfiguracionPage'))
 
 /**
  * Router — defines all application routes.
@@ -85,12 +87,7 @@ export default function Router() {
         <Route element={<ProtectedRoute requiredRoles={['ADMIN']} />}>
           <Route path="/admin/usuarios" element={<UsersPage />} />
           <Route path="/admin/metricas" element={<Admin />} />
-          <Route path="/admin/configuracion" element={
-            <div className="p-6 space-y-2">
-              <h1 className="text-2xl font-bold text-foreground">Configuración</h1>
-              <p className="text-muted-foreground">Próximamente disponible.</p>
-            </div>
-          } />
+          <Route path="/admin/configuracion" element={<AdminConfiguracionPage />} />
           {/* General admin dashboard */}
           <Route path="/admin" element={<Admin />} />
         </Route>

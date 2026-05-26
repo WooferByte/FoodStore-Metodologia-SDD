@@ -63,7 +63,7 @@ describe('IngredientsTable', () => {
   })
 
   it('renders warning badge for allergens and success badge for non-allergens', () => {
-    const { container } = render(<IngredientsTable {...defaultProps} />)
+    render(<IngredientsTable {...defaultProps} />)
 
     const badgeTexts = screen.getAllByText('Sí')
     expect(badgeTexts.length).toBeGreaterThanOrEqual(2)
