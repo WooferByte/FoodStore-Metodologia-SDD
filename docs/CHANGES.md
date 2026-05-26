@@ -1,7 +1,7 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-05-26 (system-configuration-backend archivado)
+> **Última actualización**: 2026-05-26 (frontend-system-configuration-ui archivado — BLOQUE 8 COMPLETO ✅)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
 > **Versión mapa**: 5.0 — Estado real sincronizado
 
@@ -680,12 +680,13 @@ Modelo `Configuracion` (clave UNIQUE, valor, descripcion, actualizado_por FK Usu
 
 ---
 
-### ❌ `frontend-system-configuration-ui`
+### ✅ `frontend-system-configuration-ui` (archivado 2026-05-26)
 
-Página AdminConfig. Tabla/form clave-valor editable inline. Toast al guardar. Muestra último modificador y fecha.
+Página AdminConfig. Tabla/form clave-valor editable inline con badges de tipo (number/boolean/text). Toast al guardar. Muestra último modificador y fecha. 658 vitest, 0 fallos.
 
-**Skills**: `frontend-design`, `tailwind-design-system`
+**Skills**: `tailwind-design-system`, `ui-design-system`, `vercel-react-best-practices`, `dashboard-crud-page`
 **Dependencias**: `system-configuration-backend`, `frontend-layout-components-shared`
+**Evidencia**: `openspec/changes/archive/2026-05-26-frontend-system-configuration-ui/`
 
 ---
 
@@ -793,11 +794,11 @@ BLOQUE 7 — Admin
 ├─ ✅ admin-users-management-ui
 └─ ✅ admin-ingredients-management-ui
 
-BLOQUE 8 — Patrones + Configuración
+BLOQUE 8 — Patrones + Configuración ✅ COMPLETO
 ├─ ✅ frontend-widgets-layer
 ├─ ✅ frontend-patterns-hooks-optimistic
 ├─ ✅ system-configuration-backend
-└─ ❌ frontend-system-configuration-ui
+├─ ✅ frontend-system-configuration-ui
 
 BLOQUE 9 — Entrega Final
 ├─ ❌ backend-comprehensive-testing
@@ -812,6 +813,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.12 | 2026-05-26 | frontend-system-configuration-ui archivado. Feature configuracion/admin con tabla responsive, badges de tipo, modal edición, toasts. 658 vitest. BLOQUE 8 COMPLETO ✅ PRÓXIMO: BLOQUE 9 — Entrega Final. |
 | 5.11 | 2026-05-26 | system-configuration-backend archivado. Módulo configuracion/ completo (model, repository, service, router, schemas). Migración 011. Seed 5 configs. 8 tests. PRÓXIMO: frontend-system-configuration-ui (BLOQUE 8 último change). |
 | 5.10 | 2026-05-26 | frontend-patterns-hooks-optimistic archivado. Optimistic updates en 3 mutations de pedidos. useAuth wrapper. Fix: filtros totalMin/totalMax en pedidos. PRÓXIMO: system-configuration-backend (BLOQUE 8). |
 | 5.9 | 2026-05-26 | frontend-widgets-layer archivado. 4 widgets migrados (ProductGrid, FilterBar, OrderTimeline, OrdersManagementTable). Cleanup Navbar duplicado. PRÓXIMO: frontend-patterns-hooks-optimistic (BLOQUE 8). |
