@@ -21,6 +21,7 @@ from sqlmodel import SQLModel
 from core.database import engine, async_session_local
 from core.models import (
     Categoria,
+    Configuracion,
     EstadoPedido,
     FormaPago,
     Ingrediente,
@@ -398,6 +399,36 @@ async def seed_database() -> None:
                 print(f"  [UPDATED] {nombre}")
         if updated_count == 0:
             print("  [OK] All products already have imagen_url")
+
+        # ──────────────────────────────────────────────────────────
+        # CONFIGURACIONES (sistema key-value)
+        # ──────────────────────────────────────────────────────────
+        print("\n[CONFIGURACIONES]")
+        admin_user = roles["ADMIN"]  # Reutilizar admin user que creamos antes
+        # Obtener el ID del admin user
+        admin_stmt = select(Usuario).where(Usuario.email == "admin@foodstore.com")
+        admin_result = await session.execute(admin_stmt)
+        admin_user_obj = admin_result.scalars().first()
+        
+        if admin_user_obj:
+            configuraciones_spec = [
+                ("envio_gratis_umbral", "3000", "Monto mínimo para envío gratis (en pesos)"),
+                ("token_expiracion_minutos", "30", "Tiempo de expiración del access token en minutos"),
+                ("refresh_token_expiracion_dias", "7", "Tiempo de expiración del refresh token en días"),
+                ("pedidos_rate_limit_por_hora", "10", "Máximo de pedidos por usuario por hora"),
+                ("productos_por_pagina", "12", "Cantidad de productos por página en catálogo"),
+            ]
+            
+            for clave, valor, descripcion in configuraciones_spec:
+                config, created = await get_or_create(
+                    session, Configuracion, {"clave": clave},
+                    {
+                        "valor": valor,
+                        "descripcion": descripcion,
+                        "actualizado_por": admin_user_obj.id,
+                    },
+                )
+                print(f"  {'[CREATE]' if created else '[EXISTS]'} {clave} = {valor}")
 
         await session.commit()
 

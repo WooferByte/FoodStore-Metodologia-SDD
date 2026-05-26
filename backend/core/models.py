@@ -15,6 +15,33 @@ from passlib.context import CryptContext
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+class Configuracion(SQLModel, table=True):
+    """
+    System configuration key-value store with audit trail.
+
+    Stores system parameters (timeouts, thresholds, feature flags, etc.)
+    with automatic audit trail tracking who modified what and when.
+
+    Fields:
+    - clave: UNIQUE configuration key (e.g., 'envio_gratis_umbral')
+    - valor: Configuration value (stored as VARCHAR)
+    - descripcion: Optional documentation for the key
+    - actualizado_por: FK to Usuario who last updated this config
+    - actualizado_en: Timestamp of last update
+    - creado_en: Timestamp of creation
+    """
+
+    __tablename__ = "configuracion"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    clave: str = Field(unique=True, index=True, max_length=255)
+    valor: str = Field(max_length=1000)
+    descripcion: Optional[str] = Field(default=None, max_length=500)
+    actualizado_por: int = Field(foreign_key="usuarios.id")
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    actualizado_en: datetime = Field(default_factory=datetime.utcnow)
+
+
 class UsuarioRol(SQLModel, table=True):
     """
     N:M pivot table for Usuario-Rol relationships.

@@ -201,6 +201,7 @@ from auth.router import router as auth_router
 from usuarios.role_router import router as role_router
 from usuarios.perfil_router import router as perfil_router
 from categorias.router import router as categorias_router
+from configuracion.router import router as configuracion_router
 from ingredientes.router import router as ingredientes_router
 from productos.router import router as productos_router
 from direcciones.router import router as direcciones_router
@@ -221,6 +222,7 @@ app.include_router(pagos_router, prefix="/api/v1")
 app.include_router(webhooks_router, prefix="/api/v1")
 app.include_router(admin_usuarios_router, prefix="/api/v1")
 app.include_router(admin_metricas_router, prefix="/api/v1")
+app.include_router(configuracion_router, prefix="/api/v1/admin")
 
 
 def custom_openapi():

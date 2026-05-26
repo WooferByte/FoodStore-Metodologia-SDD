@@ -30,8 +30,10 @@ from core.models import (
     DetallePedido,
     HistorialEstadoPedido,
     Pago,
+    Configuracion,
 )  # noqa: F401
 from categorias.repository import CategoriaRepository
+from configuracion.repository import ConfiguracionRepository
 from direcciones.repository import DireccionRepository
 from ingredientes.repository import IngredienteRepository
 from pagos.model import PagoWebhookLog
@@ -206,6 +208,13 @@ class UnitOfWork:
         if "pago_webhook_logs" not in self._repositories:
             self._repositories["pago_webhook_logs"] = PagoWebhookLogRepository(self.session)
         return self._repositories["pago_webhook_logs"]
+
+    @property
+    def configuracion(self) -> ConfiguracionRepository:
+        """Repository for Configuracion entity (system key-value store)."""
+        if "configuracion" not in self._repositories:
+            self._repositories["configuracion"] = ConfiguracionRepository(self.session)
+        return self._repositories["configuracion"]
 
     async def commit(self) -> None:
         """

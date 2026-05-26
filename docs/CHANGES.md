@@ -1,7 +1,7 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-05-26 (frontend-widgets-layer archivado)
+> **Última actualización**: 2026-05-26 (system-configuration-backend archivado)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
 > **Versión mapa**: 5.0 — Estado real sincronizado
 
@@ -670,12 +670,13 @@ Evidencia: `openspec/changes/archive/2026-05-26-frontend-patterns-hooks-optimist
 
 ## EPIC 14 — Configuración del Sistema *(NUEVO en v3.0)*
 
-### ❌ `system-configuration-backend`
+### ✅ `system-configuration-backend` (archivado 2026-05-26)
 
-Modelo `Configuracion` (clave UNIQUE, valor, descripcion, actualizado_por FK Usuario, actualizado_en). Seed inicial. `GET/PUT /api/v1/admin/configuracion`. Cambios sin reiniciar. Auditoría de quién modificó.
+Modelo `Configuracion` (clave UNIQUE, valor, descripcion, actualizado_por FK Usuario, actualizado_en). Seed inicial. `GET/PUT /api/v1/admin/configuracion`. Cambios sin reiniciar. Auditoría de quién modificó. 8 tests.
 
-**Skills**: `fastapi-python`, `postgres`
+**Skills**: `python-fastapi-ddd-skill`, `supabase-postgres-best-practices`
 **Dependencias**: `route-protection-rbac`
+**Evidencia**: `openspec/changes/archive/2026-05-26-system-configuration-backend/`
 
 ---
 
@@ -795,7 +796,7 @@ BLOQUE 7 — Admin
 BLOQUE 8 — Patrones + Configuración
 ├─ ✅ frontend-widgets-layer
 ├─ ✅ frontend-patterns-hooks-optimistic
-├─ ❌ system-configuration-backend
+├─ ✅ system-configuration-backend
 └─ ❌ frontend-system-configuration-ui
 
 BLOQUE 9 — Entrega Final
@@ -811,6 +812,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.11 | 2026-05-26 | system-configuration-backend archivado. Módulo configuracion/ completo (model, repository, service, router, schemas). Migración 011. Seed 5 configs. 8 tests. PRÓXIMO: frontend-system-configuration-ui (BLOQUE 8 último change). |
 | 5.10 | 2026-05-26 | frontend-patterns-hooks-optimistic archivado. Optimistic updates en 3 mutations de pedidos. useAuth wrapper. Fix: filtros totalMin/totalMax en pedidos. PRÓXIMO: system-configuration-backend (BLOQUE 8). |
 | 5.9 | 2026-05-26 | frontend-widgets-layer archivado. 4 widgets migrados (ProductGrid, FilterBar, OrderTimeline, OrdersManagementTable). Cleanup Navbar duplicado. PRÓXIMO: frontend-patterns-hooks-optimistic (BLOQUE 8). |
 | 5.8 | 2026-05-20 | admin-ingredients-management-ui archivado. CRUD admin ingredientes completo: tabla + filtro alérgeno + modal crear/editar + delete con 409. BLOQUE 7 COMPLETO. PRÓXIMO: BLOQUE 8 (frontend-widgets-layer, frontend-patterns-hooks-optimistic, system-configuration-backend, frontend-system-configuration-ui). |
