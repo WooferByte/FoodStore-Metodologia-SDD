@@ -62,7 +62,7 @@ export function useProductsCatalog(
   const queryUrl = `${API_ENDPOINTS.PRODUCTS}?${queryParams.toString()}`
 
   return useQuery<ProductsApiResponse>({
-    queryKey: [QUERY_KEYS.PRODUCTS, { categoryIds: filters.categoryIds, search: filters.search, excludeAllergens: filters.excludeAllergens, currentPage: filters.currentPage }],
+    queryKey: [QUERY_KEYS.PRODUCTS, { categoryIds: filters.categoryIds, search: filters.search, excludeAllergens: filters.excludeAllergens, currentPage: filters.currentPage, size }],
     queryFn: async () => {
       const response = await axiosInstance.get<ProductsApiResponse>(queryUrl, {
         timeout: API_TIMEOUT,

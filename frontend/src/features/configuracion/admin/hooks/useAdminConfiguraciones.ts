@@ -7,8 +7,8 @@ export function useAdminConfiguraciones() {
   return useQuery({
     queryKey: [CONFIGURACION_QUERY_KEY],
     queryFn: async () => {
-      const response = await apiClient.get<{ data: Configuracion[] }>(CONFIGURACION_API_PATH)
-      return response.data.data
+      const response = await apiClient.get<Configuracion[]>(CONFIGURACION_API_PATH)
+      return response.data
     },
     staleTime: CONFIG_STALE_TIME,
   })

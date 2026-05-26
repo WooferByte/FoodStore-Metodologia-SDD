@@ -17,9 +17,8 @@
 import { Link } from 'react-router-dom'
 import { useCartStore, useAuthStore } from '@/store'
 import { formatCurrency } from '@/features/cart/types'
+import { useSystemConfig } from '@/features/configuracion/hooks'
 
-// TODO: replace with API values in checkout change
-const FREE_DELIVERY_THRESHOLD = 3000
 const DELIVERY_FEE = 500
 
 export function OrderSummary() {
@@ -27,6 +26,10 @@ export function OrderSummary() {
   const itemCount = useCartStore((s) => s.totalItems())
   const subtotal = useCartStore((s) => s.totalPrice())
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+
+  // Fetch dynamic threshold from system config — falls back to 3000 if loading
+  const { data: config } = useSystemConfig('envio_gratis_umbral')
+  const FREE_DELIVERY_THRESHOLD = Number(config?.valor ?? 3000)
 
   const isEmpty = itemCount === 0
 

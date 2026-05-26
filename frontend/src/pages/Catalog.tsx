@@ -35,8 +35,9 @@ import {
   Pagination,
   AppliedFilters,
 } from '@/features/products/components'
-import { ITEMS_PER_PAGE, SEARCH_DEBOUNCE_DELAY } from '@/features/products/constants'
+import { SEARCH_DEBOUNCE_DELAY } from '@/features/products/constants'
 import { useDebounce } from '@/shared/hooks/useDebounce'
+import { useSystemConfig } from '@/features/configuracion/hooks'
 import type { Product, CatalogFilters } from '@/entities/product'
 
 /**
@@ -72,10 +73,14 @@ export default function CatalogPage() {
   const addToCart = useCartStore((state) => state.addItem)
   const addToast = useUIStore((state) => state.addToast)
 
+  // Fetch dynamic page size from system config — fallback to 12 (seed default)
+  const { data: pageSizeConfig } = useSystemConfig('productos_por_pagina')
+  const pageSize = Number(pageSizeConfig?.valor ?? 12)
+
   // Fetch ALL products (search param removed — client-side only)
   const { data: catalogData, isPending, isFetching, isError, error, refetch } = useProductsCatalog(
     filters,
-    ITEMS_PER_PAGE,
+    pageSize,
   )
 
   // Client-side search filter — runs on debounced term so filtering doesn't lag input
@@ -285,7 +290,7 @@ export default function CatalogPage() {
           <Pagination
             currentPage={filters.currentPage}
             totalItems={catalogData.total}
-            itemsPerPage={ITEMS_PER_PAGE}
+            itemsPerPage={pageSize}
             onPageChange={handlePageChange}
             isLoading={isPending}
           />

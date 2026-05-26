@@ -9,14 +9,16 @@ export function useUpdateConfiguracion() {
 
   return useMutation<Configuracion, Error, { clave: string; datos: ConfiguracionEditData }>({
     mutationFn: async ({ clave, datos }) => {
-      const response = await apiClient.put<{ data: Configuracion }>(
+      const response = await apiClient.put<Configuracion>(
         `${CONFIGURACION_API_PATH}/${clave}`,
         datos
       )
-      return response.data.data
+      return response.data
     },
     onSuccess: () => {
+      // Invalidate both admin panel cache and public system config cache
       queryClient.invalidateQueries({ queryKey: [CONFIGURACION_QUERY_KEY], exact: true })
+      queryClient.invalidateQueries({ queryKey: ['system-config'] })
       useUIStore.getState().addToast({
         message: 'Configuración actualizada correctamente',
         type: 'success',

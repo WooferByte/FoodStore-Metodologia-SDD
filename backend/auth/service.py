@@ -6,9 +6,10 @@ Pattern: Service layer owns business rules; delegates persistence to UoW/reposit
 from datetime import datetime, timedelta
 
 from fastapi import HTTPException, status
+from sqlalchemy import select
 
 from auth.schemas import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse
-from core.models import Usuario, UsuarioRol, RefreshToken
+from core.models import Usuario, UsuarioRol, RefreshToken, Configuracion
 from core.security import hash_password, verify_password, create_access_token, create_refresh_token
 from core.config import settings
 from infrastructure.uow import UnitOfWork
@@ -18,6 +19,26 @@ from usuarios.schemas import UsuarioResponse
 # Running verify_password against this prevents timing attacks by ensuring
 # bcrypt work is done regardless of whether the email exists in the database.
 DUMMY_HASH = "$2b$12$KixL1RJJ3DtDhvya0mIQNeKBJAHVKZ5XiMVIx9fLzN0sOr7kKhqGS"
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+async def _get_config_int(uow: UnitOfWork, clave: str, default: int) -> int:
+    """Read an integer config value from the Configuracion table."""
+    stmt = select(Configuracion.valor).where(Configuracion.clave == clave)
+    result = await uow.session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        return default
+    try:
+        return int(row)
+    except (ValueError, TypeError):
+        return default
+
+
+# ---------------------------------------------------------------------------
 
 
 async def register_user(data: RegisterRequest, uow: UnitOfWork) -> TokenResponse:
@@ -73,8 +94,10 @@ async def register_user(data: RegisterRequest, uow: UnitOfWork) -> TokenResponse
     await uow.usuario_roles.create(usuario_rol)
 
     # 5. Create refresh token string and persist it
-    refresh_token_str = create_refresh_token(usuario.id)
-    expires_at = datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)
+    refresh_expire_days = await _get_config_int(uow, 'refresh_token_expiracion_dias', 7)
+    refresh_expires_delta = timedelta(days=refresh_expire_days)
+    refresh_token_str = create_refresh_token(usuario.id, expires_delta=refresh_expires_delta)
+    expires_at = datetime.utcnow() + refresh_expires_delta
 
     refresh_token_record = RefreshToken(
         usuario_id=usuario.id,
@@ -84,12 +107,14 @@ async def register_user(data: RegisterRequest, uow: UnitOfWork) -> TokenResponse
     await uow.refresh_tokens.create(refresh_token_record)
 
     # 6. Issue access token (stateless — no DB write)
+    access_expire_minutes = await _get_config_int(uow, 'token_expiracion_minutos', 30)
     access_token_str = create_access_token(
         data={
             "sub": str(usuario.id),
             "email": usuario.email,
             "roles": ["CLIENT"],
-        }
+        },
+        expires_delta=timedelta(minutes=access_expire_minutes),
     )
 
     # 7. Return response
@@ -163,18 +188,22 @@ async def login_user(data: LoginRequest, uow: UnitOfWork) -> TokenResponse:
     # 3. Roles already eagerly loaded by selectinload above
     roles = [r.nombre for r in usuario.roles] if usuario.roles else []
 
-    # 4. Build and sign JWT access token
+    # 4. Build and sign JWT access token (dynamic expiration from config)
+    access_expire_minutes = await _get_config_int(uow, 'token_expiracion_minutos', 30)
     access_token_str = create_access_token(
         data={
             "sub": str(usuario.id),
             "email": usuario.email,
             "roles": roles,
-        }
+        },
+        expires_delta=timedelta(minutes=access_expire_minutes),
     )
 
-    # 5. Create refresh token and persist it
-    refresh_token_str = create_refresh_token(usuario.id)
-    expires_at = datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)
+    # 5. Create refresh token and persist it (dynamic expiration from config)
+    refresh_expire_days = await _get_config_int(uow, 'refresh_token_expiracion_dias', 7)
+    refresh_expires_delta = timedelta(days=refresh_expire_days)
+    refresh_token_str = create_refresh_token(usuario.id, expires_delta=refresh_expires_delta)
+    expires_at = datetime.utcnow() + refresh_expires_delta
 
     refresh_token_record = RefreshToken(
         usuario_id=usuario.id,
@@ -315,18 +344,22 @@ async def refresh_token_service(data: RefreshRequest, uow: UnitOfWork) -> TokenR
 
     roles = [r.nombre for r in usuario.roles] if usuario.roles else []
 
-    # 5c. Issue new access token (stateless JWT)
+    # 5c. Issue new access token (stateless JWT, dynamic expiration)
+    access_expire_minutes = await _get_config_int(uow, 'token_expiracion_minutos', 30)
     new_access_token = create_access_token(
         data={
             "sub": str(usuario.id),
             "email": usuario.email,
             "roles": roles,
-        }
+        },
+        expires_delta=timedelta(minutes=access_expire_minutes),
     )
 
-    # 5d. Create and persist new refresh token
-    new_refresh_token_str = create_refresh_token(usuario.id)
-    new_expires_at = datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)
+    # 5d. Create and persist new refresh token (dynamic expiration)
+    refresh_expire_days = await _get_config_int(uow, 'refresh_token_expiracion_dias', 7)
+    refresh_expires_delta = timedelta(days=refresh_expire_days)
+    new_refresh_token_str = create_refresh_token(usuario.id, expires_delta=refresh_expires_delta)
+    new_expires_at = datetime.utcnow() + refresh_expires_delta
     new_token_record = RefreshToken(
         usuario_id=usuario.id,
         token=new_refresh_token_str,

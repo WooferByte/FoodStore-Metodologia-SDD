@@ -28,13 +28,13 @@ router = APIRouter(prefix="/configuracion", tags=["Configuración del Sistema"])
     "/",
     response_model=list[ConfiguracionResponse],
     summary="List all system configurations",
-    description="Returns all system configuration entries. ADMIN only.",
+    description="Returns all system configuration entries. Accessible to any authenticated user.",
 )
 async def list_configuraciones(
     uow: UnitOfWork = Depends(get_uow),
-    _: None = Depends(require_role(["ADMIN"])),
+    _: Usuario = Depends(get_current_user),
 ) -> list[ConfiguracionResponse]:
-    """List all system configurations (ADMIN only)."""
+    """List all system configurations (any authenticated user)."""
     async with uow:
         return await service.list_configuraciones(uow)
 

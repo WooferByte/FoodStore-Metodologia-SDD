@@ -126,17 +126,21 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return encoded_jwt
 
 
-def create_refresh_token(user_id: int) -> str:
+def create_refresh_token(user_id: int, expires_delta: timedelta | None = None) -> str:
     """
     Create a refresh token for obtaining new access tokens.
 
     Args:
         user_id: ID of the user this token belongs to (stored in 'sub' claim)
+        expires_delta: Custom expiration time; defaults to REFRESH_TOKEN_EXPIRE_DAYS
 
     Returns:
         str: Encoded JWT refresh token
     """
-    expire = datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days)
+    if expires_delta:
+        expire = datetime.now(UTC) + expires_delta
+    else:
+        expire = datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days)
 
     to_encode = {
         "sub": str(user_id),

@@ -29,12 +29,14 @@ Valid transitions:
   5 and 6 are terminal states — no transitions from them.
 """
 import json
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional
 
 from fastapi import HTTPException, status
+from sqlalchemy import select, func
 
-from core.models import DetallePedido, HistorialEstadoPedido, Pedido
+from core.models import DetallePedido, HistorialEstadoPedido, Pedido, Configuracion
 from infrastructure.uow import UnitOfWork
 from pedidos.schemas import (
     CambioPrecioItem,
@@ -43,6 +45,24 @@ from pedidos.schemas import (
     ValidarCarritoRequest,
     ValidarCarritoResponse,
 )
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+async def _get_config_int(uow: UnitOfWork, clave: str, default: int) -> int:
+    """Read an integer config value from the Configuracion table."""
+    stmt = select(Configuracion.valor).where(Configuracion.clave == clave)
+    result = await uow.session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is None:
+        return default
+    try:
+        return int(row)
+    except (ValueError, TypeError):
+        return default
+
 
 # ---------------------------------------------------------------------------
 # FSM constants (D-03)
@@ -241,7 +261,34 @@ async def create_pedido(
         HTTPException 422: forma_pago invalid/inactive, or product invalid
                            (soft-deleted or disponible=False).
         HTTPException 409: Insufficient stock for one or more items (RFC 7807).
+        HTTPException 429: Rate limit exceeded (dynamic from config).
     """
+    # ------------------------------------------------------------------
+    # Rate limit check — dynamic from Configuracion table
+    # ------------------------------------------------------------------
+    rate_limit = await _get_config_int(uow, 'pedidos_rate_limit_por_hora', 10)
+    one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+    count_stmt = select(func.count()).select_from(Pedido).where(
+        Pedido.usuario_id == usuario_id,
+        Pedido.creado_en >= one_hour_ago,
+        Pedido.eliminado_en.is_(None),
+    )
+    count_result = await uow.session.execute(count_stmt)
+    recent_count = count_result.scalar() or 0
+    if recent_count >= rate_limit:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                "type": "about:blank",
+                "title": "Too Many Requests",
+                "status": 429,
+                "detail": (
+                    f"Has alcanzado el límite de {rate_limit} pedidos por hora. "
+                    "Espera un momento antes de crear otro pedido."
+                ),
+            },
+        )
+
     # ------------------------------------------------------------------
     # 4.3a — Ownership check: address belongs to this user
     # ------------------------------------------------------------------
