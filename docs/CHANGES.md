@@ -1,7 +1,7 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-05-20 (BLOQUE 7 completado — admin-ingredients-management-ui archivado)
+> **Última actualización**: 2026-05-26 (frontend-widgets-layer archivado)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
 > **Versión mapa**: 5.0 — Estado real sincronizado
 
@@ -648,9 +648,10 @@ Evidencia: `openspec/changes/archive/2026-05-20-admin-ingredients-management-ui/
 
 ## EPIC 13 — Patrones Frontend *(NUEVO en v3.1)*
 
-### ❌ `frontend-widgets-layer`
+### ✅ `frontend-widgets-layer` (archivado 2026-05-26)
 
-Capa `widgets/` FSD. Componentes compuestos: `CartSidebar` (drawer completo), `OrderTimeline` (historial estados), `ProductGrid` (grid + filtros + paginación), `DashboardLayout`. Estos widgets componen features y entities en bloques reutilizables.
+Migrados 4 componentes compositivos de features/ a widgets/ FSD: ProductGrid, FilterBar, OrderTimeline, OrdersManagementTable. Eliminado duplicado stale `shared/components/Navbar.tsx`. Actualizado AGENTS.md.
+Evidencia: `openspec/changes/archive/2026-05-26-frontend-widgets-layer/`
 
 **Skills**: `frontend-design`, `tailwind-design-system`
 **Dependencias**: `frontend-layout-components-shared`, `frontend-shopping-cart-ui`
@@ -791,7 +792,7 @@ BLOQUE 7 — Admin
 └─ ✅ admin-ingredients-management-ui
 
 BLOQUE 8 — Patrones + Configuración
-├─ ❌ frontend-widgets-layer
+├─ ✅ frontend-widgets-layer
 ├─ ❌ frontend-patterns-hooks-optimistic
 ├─ ❌ system-configuration-backend
 └─ ❌ frontend-system-configuration-ui
@@ -809,6 +810,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.9 | 2026-05-26 | frontend-widgets-layer archivado. 4 widgets migrados (ProductGrid, FilterBar, OrderTimeline, OrdersManagementTable). Cleanup Navbar duplicado. PRÓXIMO: frontend-patterns-hooks-optimistic (BLOQUE 8). |
 | 5.8 | 2026-05-20 | admin-ingredients-management-ui archivado. CRUD admin ingredientes completo: tabla + filtro alérgeno + modal crear/editar + delete con 409. BLOQUE 7 COMPLETO. PRÓXIMO: BLOQUE 8 (frontend-widgets-layer, frontend-patterns-hooks-optimistic, system-configuration-backend, frontend-system-configuration-ui). |
 | 5.7 | 2026-05-20 | admin-stock-management-ui archivado. Página /admin/stock con tabla + badges semánticos + modal edición. Fixes: filtro disponible backend, invalidación cruzada Products↔Stock, RN-STOCK01 auto-desactivar. PRÓXIMO: admin-ingredients-management-ui (BLOQUE 7). |
 | 5.6 | 2026-05-20 | admin-products-management-ui archivado. CRUD admin productos completo: tabla con paginación + filtros, formulario multi-categoría/ingrediente, delete modal, 19 tests. Fixes: relaciones N:M, CTE recursiva, invalidación cruzada caché, fix null descripcion búsqueda. PRÓXIMO: admin-ingredients-management-ui o admin-stock-management-ui (BLOQUE 7). |

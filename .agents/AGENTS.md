@@ -194,7 +194,7 @@ sdd-parcial1-gestion/
 ├── frontend/
 │   └── src/
 │       ├── app/
-│       ├── entities/             # vacío — pendiente implementar
+│       ├── entities/             # product, order, address, cart-item — implementados
 │       ├── features/
 │       │   └── products/         # único feature implementado
 │       │       ├── components/
@@ -212,7 +212,7 @@ sdd-parcial1-gestion/
 │       │   └── routing/
 │       ├── store/
 │       │   └── __tests__/
-│       └── widgets/              # vacío — pendiente implementar
+│       └── widgets/              # Navbar, Sidebar, Footer, CartDrawer, ProductGrid, FilterBar, OrderTimeline, OrdersManagementTable
 ├── docs/
 │   ├── Integrador.txt
 │   ├── Descripcion.txt

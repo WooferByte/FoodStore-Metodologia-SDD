@@ -10,8 +10,8 @@
  * @component
  */
 
-import { ProductCard } from './ProductCard'
-import type { Product } from '@\/entities/product'
+import { ProductCard } from '@/features/products/components/ProductCard'
+import type { Product } from '@/entities/product'
 
 interface ProductGridProps {
   products: Product[] | undefined

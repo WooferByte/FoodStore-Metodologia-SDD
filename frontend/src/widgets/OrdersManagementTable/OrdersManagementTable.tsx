@@ -26,7 +26,7 @@ import { useNavigate } from 'react-router-dom'
 import { OrdersManagementRow } from '@/features/orders/components/management/OrdersManagementRow'
 import { OrderCard } from '@/features/orders/components/OrderCard'
 import { useOrdersManagementStore } from '@/features/orders/store/ordersManagementStore'
-import type { Order } from '@\/entities/order'
+import type { Order } from '@/entities/order'
 
 export interface OrdersManagementTableProps {
   orders: Order[]
@@ -209,7 +209,7 @@ export function OrdersManagementTable({
             const isSelected = selectedIds.has(order.id)
             const toggleId = useOrdersManagementStore.getState().toggleId
             return (
-              <div key={order.id} className="relative">
+              <div key={order.id} className="relative rounded-xl border border-border bg-card p-4">
                 {/* Selection indicator */}
                 <div className="absolute top-3 right-3 z-10">
                   <input

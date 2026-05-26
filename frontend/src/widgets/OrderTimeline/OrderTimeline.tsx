@@ -13,7 +13,7 @@
 
 import { useMemo } from 'react'
 import { OrderTimelineItem } from '@/features/orders/components/detail/OrderTimelineItem'
-import type { OrderHistorialItem } from '@\/entities/order'
+import type { OrderHistorialItem } from '@/entities/order'
 
 export interface OrderTimelineProps {
   historial: OrderHistorialItem[]

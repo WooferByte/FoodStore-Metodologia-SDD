@@ -18,7 +18,7 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { OrderDetailHeader } from '@/features/orders/components/detail/OrderDetailHeader'
 import { OrderItemSnapshot } from '@/features/orders/components/detail/OrderItemSnapshot'
-import { OrderTimeline } from '@/features/orders/components/detail/OrderTimeline'
+import { OrderTimeline } from '@/widgets/OrderTimeline'
 import { OrderActions } from '@/features/orders/components/detail/OrderActions'
 import { CancelOrderModal } from '@/features/orders/components/detail/CancelOrderModal'
 import { OrderDetailSkeleton } from '@/features/orders/components/detail/OrderDetailSkeleton'

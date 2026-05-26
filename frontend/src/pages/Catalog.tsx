@@ -28,10 +28,10 @@ import {
   useAllergensFilter,
   useCatalogSearch,
 } from '@/features/products/hooks'
+import { ProductGrid } from '@/widgets/ProductGrid'
+import { FilterBar } from '@/widgets/FilterBar'
 import {
-  ProductGrid,
   ProductDetail,
-  FilterBar,
   Pagination,
   AppliedFilters,
 } from '@/features/products/components'

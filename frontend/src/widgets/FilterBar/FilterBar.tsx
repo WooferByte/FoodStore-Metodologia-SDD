@@ -24,11 +24,11 @@
 
 import { useState } from 'react'
 import { Filter, X } from 'lucide-react'
-import { SearchInput } from './SearchInput'
-import { CategoryFilter } from './CategoryFilter'
-import { AllergenFilter } from './AllergenFilter'
+import { SearchInput } from '@/features/products/components/SearchInput'
+import { CategoryFilter } from '@/features/products/components/CategoryFilter'
+import { AllergenFilter } from '@/features/products/components/AllergenFilter'
 import { useAllergensFilter } from '@/features/products/hooks'
-import type { Product } from '@\/entities/product'
+import type { Product } from '@/entities/product'
 
 interface FilterBarProps {
   search: string
