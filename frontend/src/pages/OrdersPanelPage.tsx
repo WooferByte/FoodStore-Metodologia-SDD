@@ -40,6 +40,8 @@ export default function OrdersPanelPage() {
   const search     = useOrdersFilterStore((s) => s.search)
   const fechaDesde = useOrdersFilterStore((s) => s.fechaDesde)
   const fechaHasta = useOrdersFilterStore((s) => s.fechaHasta)
+  const totalMin   = useOrdersFilterStore((s) => s.totalMin)
+  const totalMax   = useOrdersFilterStore((s) => s.totalMax)
 
   const { data, isLoading, isFetching } = useOrders({
     limit: LIMIT,
@@ -48,6 +50,8 @@ export default function OrdersPanelPage() {
     search,
     fechaDesde,
     fechaHasta,
+    totalMin,
+    totalMax,
   })
 
   const orders   = data?.items ?? []

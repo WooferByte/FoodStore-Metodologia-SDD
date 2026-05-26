@@ -200,6 +200,8 @@ async def list_pedidos(
     q: Optional[str] = Query(default=None, description="Buscar por email de usuario (solo ADMIN/PEDIDOS)"),
     fecha_desde: Optional[str] = Query(default=None, description="Fecha desde (YYYY-MM-DD)"),
     fecha_hasta: Optional[str] = Query(default=None, description="Fecha hasta (YYYY-MM-DD)"),
+    total_min: Optional[float] = Query(default=None, description="Filtrar por total mínimo"),
+    total_max: Optional[float] = Query(default=None, description="Filtrar por total máximo"),
     current_user: Usuario = Depends(require_role(["CLIENT", "ADMIN", "PEDIDOS"])),
     uow: UnitOfWork = Depends(get_uow),
 ) -> PaginatedPedidosResponse:
@@ -216,10 +218,12 @@ async def list_pedidos(
                 skip=offset, limit=limit,
                 estado_pedido_id=estado_pedido_id,
                 q=q, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
+                total_min=total_min, total_max=total_max,
             )
             total = await uow.pedidos.count_all(
                 estado_pedido_id=estado_pedido_id,
                 q=q, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
+                total_min=total_min, total_max=total_max,
             )
         else:
             items = await uow.pedidos.list_by_usuario(current_user.id, skip=offset, limit=limit)

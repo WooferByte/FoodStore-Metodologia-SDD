@@ -51,6 +51,8 @@ export interface UseOrdersParams {
   search?: string
   fechaDesde?: string
   fechaHasta?: string
+  totalMin?: number | null
+  totalMax?: number | null
 }
 
 /**

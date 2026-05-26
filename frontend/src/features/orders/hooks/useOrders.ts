@@ -33,6 +33,12 @@ function buildOrdersQueryParams(params: UseOrdersParams): URLSearchParams {
   if (params.fechaHasta?.trim()) {
     p.set('fecha_hasta', params.fechaHasta.trim())
   }
+  if (params.totalMin != null) {
+    p.set('total_min', String(params.totalMin))
+  }
+  if (params.totalMax != null) {
+    p.set('total_max', String(params.totalMax))
+  }
 
   return p
 }

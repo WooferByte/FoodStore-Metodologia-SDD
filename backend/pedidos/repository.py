@@ -15,6 +15,7 @@ HistorialEstadoPedidoRepository (append-only):
   - list_by_pedido(): SELECT ordered by creado_en ASC for audit trail
 """
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import select
@@ -158,6 +159,8 @@ class PedidoRepository(BaseRepository[Pedido]):
         q: Optional[str] = None,
         fecha_desde: Optional[str] = None,
         fecha_hasta: Optional[str] = None,
+        total_min: Optional[Decimal] = None,
+        total_max: Optional[Decimal] = None,
     ) -> list[Pedido]:
         """Return all non-deleted orders (admin/staff view), with optional filters."""
         from datetime import date
@@ -186,6 +189,12 @@ class PedidoRepository(BaseRepository[Pedido]):
             except ValueError:
                 pass
 
+        if total_min is not None:
+            stmt = stmt.where(Pedido.total >= total_min)
+
+        if total_max is not None:
+            stmt = stmt.where(Pedido.total <= total_max)
+
         stmt = stmt.order_by(Pedido.creado_en.desc()).offset(skip).limit(limit)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
@@ -196,6 +205,8 @@ class PedidoRepository(BaseRepository[Pedido]):
         q: Optional[str] = None,
         fecha_desde: Optional[str] = None,
         fecha_hasta: Optional[str] = None,
+        total_min: Optional[Decimal] = None,
+        total_max: Optional[Decimal] = None,
     ) -> int:
         """Count all non-deleted orders (admin/staff view), with optional filters."""
         from datetime import date
@@ -222,6 +233,12 @@ class PedidoRepository(BaseRepository[Pedido]):
                 stmt = stmt.where(Pedido.creado_en <= date.fromisoformat(fecha_hasta))
             except ValueError:
                 pass
+
+        if total_min is not None:
+            stmt = stmt.where(Pedido.total >= total_min)
+
+        if total_max is not None:
+            stmt = stmt.where(Pedido.total <= total_max)
 
         result = await self.session.execute(stmt)
         return result.scalar_one()

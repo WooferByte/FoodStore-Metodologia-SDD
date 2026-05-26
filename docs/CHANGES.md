@@ -658,9 +658,10 @@ Evidencia: `openspec/changes/archive/2026-05-26-frontend-widgets-layer/`
 
 ---
 
-### ❌ `frontend-patterns-hooks-optimistic`
+### ✅ `frontend-patterns-hooks-optimistic` (archivado 2026-05-26)
 
-Custom hooks evaluados en rúbrica: `useProductos(filtros)` (TanStack Query + paginación + debounce), `usePedidos(filtros)`, `useCarrito()` (wrapper cartStore + validaciones), `useAuth()`. Optimistic updates en mutaciones del carrito con `onMutate/onError/onSettled`.
+Optimistic updates (onMutate/onError/onSettled) en useCancelOrder, useAdvanceOrderState, useBulkOrderActions. Creado useAuth wrapper. Fix: filtros totalMin/totalMax en pedidos admin conectados (OrdersPanelPage + backend).
+Evidencia: `openspec/changes/archive/2026-05-26-frontend-patterns-hooks-optimistic/`
 
 **Skills**: `frontend-design`
 **Dependencias**: `frontend-shopping-cart-zustand`, `frontend-orders-listing-ui`
@@ -793,7 +794,7 @@ BLOQUE 7 — Admin
 
 BLOQUE 8 — Patrones + Configuración
 ├─ ✅ frontend-widgets-layer
-├─ ❌ frontend-patterns-hooks-optimistic
+├─ ✅ frontend-patterns-hooks-optimistic
 ├─ ❌ system-configuration-backend
 └─ ❌ frontend-system-configuration-ui
 
@@ -810,6 +811,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.10 | 2026-05-26 | frontend-patterns-hooks-optimistic archivado. Optimistic updates en 3 mutations de pedidos. useAuth wrapper. Fix: filtros totalMin/totalMax en pedidos. PRÓXIMO: system-configuration-backend (BLOQUE 8). |
 | 5.9 | 2026-05-26 | frontend-widgets-layer archivado. 4 widgets migrados (ProductGrid, FilterBar, OrderTimeline, OrdersManagementTable). Cleanup Navbar duplicado. PRÓXIMO: frontend-patterns-hooks-optimistic (BLOQUE 8). |
 | 5.8 | 2026-05-20 | admin-ingredients-management-ui archivado. CRUD admin ingredientes completo: tabla + filtro alérgeno + modal crear/editar + delete con 409. BLOQUE 7 COMPLETO. PRÓXIMO: BLOQUE 8 (frontend-widgets-layer, frontend-patterns-hooks-optimistic, system-configuration-backend, frontend-system-configuration-ui). |
 | 5.7 | 2026-05-20 | admin-stock-management-ui archivado. Página /admin/stock con tabla + badges semánticos + modal edición. Fixes: filtro disponible backend, invalidación cruzada Products↔Stock, RN-STOCK01 auto-desactivar. PRÓXIMO: admin-ingredients-management-ui (BLOQUE 7). |
