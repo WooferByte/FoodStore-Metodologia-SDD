@@ -27,6 +27,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { useCheckoutValidation } from '@/features/checkout/hooks/useCheckoutValidation'
 import { CheckoutValidationModal } from '@/features/checkout/components/CheckoutValidationModal'
+import { useAddresses } from '@/features/addresses/hooks/useAddresses'
 import { PaymentMethodSelector } from '@/features/payments/components/PaymentMethodSelector'
 import { MercadoPagoButton } from '@/features/payments/components/MercadoPagoButton'
 import { PaymentStatusModal } from '@/features/payments/components/PaymentStatusModal'
@@ -108,6 +109,17 @@ export default function CheckoutPage() {
   // Order + preference creation
   const createOrderMutation = useCreateOrder()
   const createPreferenceMutation = useCreatePreference()
+
+  // Addresses
+  const { data: addresses, isLoading: isLoadingAddresses } = useAddresses()
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null)
+
+  // Auto-select predeterminada when addresses load
+  useEffect(() => {
+    if (!addresses || selectedAddressId !== null) return
+    const predeterminada = addresses.find((a) => a.es_predeterminada) ?? addresses[0]
+    if (predeterminada) setSelectedAddressId(predeterminada.id)
+  }, [addresses, selectedAddressId])
 
   // Local form state
   const [form, setForm] = useState<BuyerForm>({
@@ -202,9 +214,14 @@ export default function CheckoutPage() {
     setStatus('creating_order')
 
     // Build order payload from cart
+    if (!selectedAddressId) {
+      addToast({ message: 'Seleccioná una dirección de entrega', type: 'warning' })
+      return
+    }
+
     createOrderMutation.mutate(
       {
-        direccion_entrega_id: 1, // TODO: pick from address selector when available
+        direccion_entrega_id: selectedAddressId,
         forma_pago_id: 1,        // MercadoPago = 1 (verify with backend seed)
         observacion: undefined,
         items: items.map((item) => ({
@@ -263,6 +280,7 @@ export default function CheckoutPage() {
   const cartTotal = totalPrice()
   const isPayButtonLoading =
     paymentStatus === 'creating_order' || paymentStatus === 'creating_preference'
+  const isPayButtonDisabled = isPayButtonLoading || !selectedAddressId
 
   // ---------------------------------------------------------------------------
   // Loading state (validating cart)
@@ -345,6 +363,60 @@ export default function CheckoutPage() {
             <h1 className="text-2xl font-bold text-foreground">
               Finalizar pedido
             </h1>
+
+            {/* Address selector */}
+            <section
+              aria-labelledby="address-heading"
+              className="rounded-xl border border-border bg-card p-6"
+            >
+              <h2
+                id="address-heading"
+                className="text-lg font-semibold text-foreground mb-4"
+              >
+                Dirección de entrega
+              </h2>
+
+              {isLoadingAddresses ? (
+                <p className="text-sm text-muted-foreground">Cargando direcciones...</p>
+              ) : !addresses || addresses.length === 0 ? (
+                <p className="text-sm text-destructive">
+                  No tenés direcciones guardadas.{' '}
+                  <a href="/addresses" className="underline hover:text-foreground">
+                    Agregá una
+                  </a>{' '}
+                  antes de continuar.
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {addresses.map((addr) => (
+                    <li key={addr.id}>
+                      <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-border p-3 hover:bg-muted/50 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                        <input
+                          type="radio"
+                          name="address"
+                          value={addr.id}
+                          checked={selectedAddressId === addr.id}
+                          onChange={() => setSelectedAddressId(addr.id)}
+                          className="mt-0.5 accent-primary"
+                        />
+                        <div className="text-sm">
+                          <p className="font-medium text-foreground">
+                            {addr.alias}
+                            {addr.es_predeterminada && (
+                              <span className="ml-2 text-xs text-primary font-normal">Predeterminada</span>
+                            )}
+                          </p>
+                          <p className="text-muted-foreground">
+                            {addr.linea1}{addr.piso ? `, Piso ${addr.piso}` : ''}{addr.departamento ? ` Dpto ${addr.departamento}` : ''}
+                          </p>
+                          <p className="text-muted-foreground">{addr.ciudad}, CP {addr.codigo_postal}</p>
+                        </div>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
 
             {/* Buyer info form */}
             <section
@@ -520,7 +592,7 @@ export default function CheckoutPage() {
                       <button
                         type="button"
                         onClick={handlePay}
-                        disabled={isPayButtonLoading}
+                        disabled={isPayButtonDisabled}
                         data-testid="generate-preference-btn"
                         className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -535,7 +607,7 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     onClick={handlePay}
-                    disabled={isPayButtonLoading}
+                    disabled={isPayButtonDisabled}
                     className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Confirmar pedido
