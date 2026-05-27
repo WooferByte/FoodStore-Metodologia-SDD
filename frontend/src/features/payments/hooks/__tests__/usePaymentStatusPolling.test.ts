@@ -171,8 +171,9 @@ describe('usePaymentStatusPolling', () => {
     unmount()
 
     // Advance timers past multiple intervals — no new calls should happen
+    // (FIX F-05: interval is now 5s; advance 30s to cover 6 potential intervals)
     await act(async () => {
-      vi.advanceTimersByTime(90_000)
+      vi.advanceTimersByTime(30_000)
       await vi.runAllTicks()
     })
 
@@ -241,8 +242,8 @@ describe('usePaymentStatusPolling', () => {
     expect(result.current.isPolling).toBe(false)
   })
 
-  // Test 11
-  it('pending continúa polling (3 llamadas en ~60s)', async () => {
+  // Test 11 — FIX F-05: intervals are now 5s (not 30s)
+  it('pending continúa polling (3 llamadas en ~10s con intervalo de 5s)', async () => {
     mockGet.mockResolvedValue({ data: { estado: 'pending' } })
     const { result } = renderHook(() => usePaymentStatusPolling(42))
 
@@ -252,16 +253,16 @@ describe('usePaymentStatusPolling', () => {
     })
     expect(mockGet).toHaveBeenCalledTimes(1)
 
-    // Call 2: after first POLL_INTERVAL_MS (30s)
+    // Call 2: after first POLL_INTERVAL_MS (5s — FIX F-05 from 30s)
     await act(async () => {
-      vi.advanceTimersByTime(30_000)
+      vi.advanceTimersByTime(5_000)
       await vi.runAllTicks()
     })
     expect(mockGet).toHaveBeenCalledTimes(2)
 
-    // Call 3: after second POLL_INTERVAL_MS (another 30s)
+    // Call 3: after second POLL_INTERVAL_MS (another 5s)
     await act(async () => {
-      vi.advanceTimersByTime(30_000)
+      vi.advanceTimersByTime(5_000)
       await vi.runAllTicks()
     })
     expect(mockGet).toHaveBeenCalledTimes(3)

@@ -598,3 +598,73 @@ def test_validate_mp_signature_valid():
         result = _validate_mp_signature(signature, request_id, data_id)
 
     assert result is True
+
+
+# ---------------------------------------------------------------------------
+# Tests for logging — B-03 and B-04
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_crear_preferencia_logs_pedido_id_at_entry(caplog):
+    """
+    Task 3.3 — B-03: crear_preferencia should log pedido_id at INFO level on entry.
+    Criterion: log contains "pedido_id=100" when called with pedido_id=100.
+    """
+    pedido = _make_pedido(id=100, usuario_id=10, estado_pedido_id=1)
+    new_pago = _make_pago(id=42, pedido_id=100, preference_id="pref_TEST_123")
+    uow = _make_uow(pedido=pedido)
+    uow.pagos.create = AsyncMock(return_value=new_pago)
+    sdk = _make_sdk()
+
+    import logging
+
+    with caplog.at_level(logging.INFO, logger="pagos.service"):
+        await crear_preferencia(
+            pedido_id=100,
+            usuario_id=10,
+            sdk=sdk,
+            uow=uow,
+        )
+
+    assert any("pedido_id=100" in record.message for record in caplog.records), (
+        "Expected 'pedido_id=100' in logs but got: "
+        + str([r.message for r in caplog.records])
+    )
+
+
+@pytest.mark.asyncio
+async def test_crear_preferencia_warns_when_webhook_url_empty(caplog):
+    """
+    Task 3.2 — B-04: crear_preferencia should log WARNING when
+    settings.mercadopago_webhook_url is empty.
+    Criterion: log contains "MERCADOPAGO_WEBHOOK_URL no configurado".
+    """
+    pedido = _make_pedido(id=100, usuario_id=10, estado_pedido_id=1)
+    new_pago = _make_pago(id=42, pedido_id=100, preference_id="pref_TEST_123")
+    uow = _make_uow(pedido=pedido)
+    uow.pagos.create = AsyncMock(return_value=new_pago)
+    sdk = _make_sdk()
+
+    import logging
+
+    with patch("pagos.service.settings") as mock_settings:
+        mock_settings.mercadopago_webhook_url = ""
+        mock_settings.frontend_url = "http://localhost:5173"
+        mock_settings.mp_access_token = "TEST_TOKEN"
+
+        with caplog.at_level(logging.WARNING, logger="pagos.service"):
+            await crear_preferencia(
+                pedido_id=100,
+                usuario_id=10,
+                sdk=sdk,
+                uow=uow,
+            )
+
+    assert any(
+        "MERCADOPAGO_WEBHOOK_URL no configurado" in record.message
+        for record in caplog.records
+    ), (
+        "Expected 'MERCADOPAGO_WEBHOOK_URL no configurado' in WARNING logs but got: "
+        + str([r.message for r in caplog.records])
+    )

@@ -2,74 +2,46 @@
  * Tests for MercadoPagoButton component.
  *
  * Tests:
- *   - SDK not available: renders error message, button disabled
- *   - SDK available, no preferenceId: button disabled
- *   - SDK available, preferenceId set: button enabled
+ *   - No initPoint: button disabled
+ *   - initPoint set: button enabled, click redirects to initPoint
  *   - Loading states: aria-busy, disabled, spinner text
- *   - Click calls mp.checkout() with correct preferenceId
+ *   - onClick callback called before redirect
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { MercadoPagoButton } from '../MercadoPagoButton'
 import { usePaymentStore } from '@/store/paymentStore'
 
-// Reset store and window.MercadoPago before each test
 beforeEach(() => {
   usePaymentStore.getState().reset()
   usePaymentStore.getState().setMethod('mercadopago')
-  // Clean up any existing window.MercadoPago
-  delete (window as typeof window & { MercadoPago?: unknown }).MercadoPago
 })
 
 afterEach(() => {
-  delete (window as typeof window & { MercadoPago?: unknown }).MercadoPago
   vi.restoreAllMocks()
 })
 
 describe('MercadoPagoButton', () => {
-  describe('SDK no disponible', () => {
-    it('shows error message when window.MercadoPago is not defined', () => {
-      // SDK not loaded
-      render(<MercadoPagoButton />)
-      expect(screen.getByRole('alert')).toBeInTheDocument()
-      expect(
-        screen.getByText(/procesador de pagos no está disponible/i),
-      ).toBeInTheDocument()
-    })
-
-    it('does not render the payment button when SDK is missing', () => {
-      render(<MercadoPagoButton />)
-      expect(
-        screen.queryByTestId('mercadopago-button'),
-      ).not.toBeInTheDocument()
-    })
-  })
-
-  describe('SDK disponible', () => {
-    beforeEach(() => {
-      // Mock window.MercadoPago constructor
-      const mockCheckout = vi.fn()
-      window.MercadoPago = vi.fn().mockImplementation(() => ({
-        checkout: mockCheckout,
-      }))
-    })
-
-    it('renders the payment button when SDK is available', () => {
-      render(<MercadoPagoButton />)
-      expect(screen.getByTestId('mercadopago-button')).toBeInTheDocument()
-    })
-
-    it('button is disabled when preferenceId is null', () => {
+  describe('Sin initPoint', () => {
+    it('renders the button disabled when initPoint is null', () => {
       render(<MercadoPagoButton />)
       const btn = screen.getByTestId('mercadopago-button')
+      expect(btn).toBeInTheDocument()
       expect(btn).toBeDisabled()
       expect(btn).toHaveAttribute('aria-disabled', 'true')
     })
 
-    it('button is enabled when preferenceId is set', () => {
-      usePaymentStore.getState().setPreference('pref-123', 1, 'https://mp.com')
+    it('shows "Pagar con MercadoPago" label when idle with no initPoint', () => {
+      render(<MercadoPagoButton />)
+      expect(screen.getByText('Pagar con MercadoPago')).toBeInTheDocument()
+    })
+  })
+
+  describe('Con initPoint', () => {
+    it('button is enabled when initPoint is set', () => {
+      usePaymentStore.getState().setPreference('pref-123', 1, 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-123')
       usePaymentStore.getState().setStatus('idle')
       render(<MercadoPagoButton />)
       const btn = screen.getByTestId('mercadopago-button')
@@ -77,20 +49,72 @@ describe('MercadoPagoButton', () => {
       expect(btn).toHaveAttribute('aria-disabled', 'false')
     })
 
-    it('shows "Pagar con MercadoPago" label when idle with preferenceId', () => {
-      usePaymentStore.getState().setPreference('pref-123', 1, 'https://mp.com')
+    it('shows "Pagar con MercadoPago" label when idle with initPoint', () => {
+      usePaymentStore.getState().setPreference('pref-123', 1, 'https://mp.com/checkout')
       render(<MercadoPagoButton />)
       expect(screen.getByText('Pagar con MercadoPago')).toBeInTheDocument()
+    })
+
+    it('redirects to initPoint on click', () => {
+      const initPoint = 'https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=pref-abc'
+      usePaymentStore.getState().setPreference('pref-abc', 1, initPoint)
+      usePaymentStore.getState().setStatus('idle')
+
+      // jsdom does not support window.location assignment — mock it
+      const assignSpy = vi.spyOn(window, 'location', 'get').mockReturnValue({
+        ...window.location,
+        href: '',
+      } as Location)
+      let capturedHref = ''
+      Object.defineProperty(window, 'location', {
+        value: { href: '' },
+        writable: true,
+      })
+
+      render(<MercadoPagoButton />)
+      fireEvent.click(screen.getByTestId('mercadopago-button'))
+
+      // In jsdom, assignment to window.location.href is intercepted
+      // We verify status transitioned (redirect was attempted)
+      expect(usePaymentStore.getState().status).toBe('waiting_payment')
+      assignSpy.mockRestore()
+      void capturedHref // suppress unused var warning
+    })
+
+    it('calls onCheckoutOpen callback before redirect', () => {
+      const initPoint = 'https://mp.com/checkout'
+      usePaymentStore.getState().setPreference('pref-xyz', 2, initPoint)
+      usePaymentStore.getState().setStatus('idle')
+
+      Object.defineProperty(window, 'location', {
+        value: { href: '' },
+        writable: true,
+      })
+
+      const onCheckoutOpen = vi.fn()
+      render(<MercadoPagoButton onCheckoutOpen={onCheckoutOpen} />)
+      fireEvent.click(screen.getByTestId('mercadopago-button'))
+
+      expect(onCheckoutOpen).toHaveBeenCalledOnce()
+    })
+
+    it('sets status to waiting_payment after clicking', () => {
+      usePaymentStore.getState().setPreference('pref-xyz', 2, 'https://mp.com')
+      usePaymentStore.getState().setStatus('idle')
+
+      Object.defineProperty(window, 'location', {
+        value: { href: '' },
+        writable: true,
+      })
+
+      render(<MercadoPagoButton />)
+      fireEvent.click(screen.getByTestId('mercadopago-button'))
+
+      expect(usePaymentStore.getState().status).toBe('waiting_payment')
     })
   })
 
   describe('Estados de carga', () => {
-    beforeEach(() => {
-      window.MercadoPago = vi.fn().mockImplementation(() => ({
-        checkout: vi.fn(),
-      }))
-    })
-
     it('shows "Creando pedido..." when status is creating_order', () => {
       usePaymentStore.getState().setStatus('creating_order')
       render(<MercadoPagoButton />)
@@ -111,53 +135,12 @@ describe('MercadoPagoButton', () => {
         'true',
       )
     })
-  })
 
-  describe('Llamada al SDK', () => {
-    it('calls mp.checkout() with correct preferenceId on click', async () => {
-      const mockCheckout = vi.fn()
-      window.MercadoPago = vi.fn().mockImplementation(() => ({
-        checkout: mockCheckout,
-      }))
-
-      usePaymentStore.getState().setPreference('pref-abc-123', 1, 'https://mp.com')
-      usePaymentStore.getState().setStatus('idle')
-
+    it('button is disabled when loading even with initPoint', () => {
+      usePaymentStore.getState().setPreference('pref-123', 1, 'https://mp.com')
+      usePaymentStore.getState().setStatus('creating_preference')
       render(<MercadoPagoButton />)
-
-      // Wait for useEffect to run and enable the button
-      await waitFor(() => {
-        const btn = screen.getByTestId('mercadopago-button')
-        expect(btn).not.toBeDisabled()
-      })
-
-      fireEvent.click(screen.getByTestId('mercadopago-button'))
-
-      expect(mockCheckout).toHaveBeenCalledWith({
-        preference: { id: 'pref-abc-123' },
-        autoOpen: true,
-      })
-    })
-
-    it('sets status to waiting_payment after clicking', async () => {
-      const mockCheckout = vi.fn()
-      window.MercadoPago = vi.fn().mockImplementation(() => ({
-        checkout: mockCheckout,
-      }))
-
-      usePaymentStore.getState().setPreference('pref-xyz', 2, 'https://mp.com')
-      usePaymentStore.getState().setStatus('idle')
-
-      render(<MercadoPagoButton />)
-
-      // Wait for useEffect to set sdkAvailable=true
-      await waitFor(() => {
-        expect(screen.getByTestId('mercadopago-button')).not.toBeDisabled()
-      })
-
-      fireEvent.click(screen.getByTestId('mercadopago-button'))
-
-      expect(usePaymentStore.getState().status).toBe('waiting_payment')
+      expect(screen.getByTestId('mercadopago-button')).toBeDisabled()
     })
   })
 })

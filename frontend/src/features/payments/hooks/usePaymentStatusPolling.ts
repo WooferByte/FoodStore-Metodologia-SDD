@@ -23,7 +23,7 @@ import type { PaymentStatusResponse, PollingResult } from '../types/payment.type
 // Constants
 // ---------------------------------------------------------------------------
 
-const POLL_INTERVAL_MS = 30_000
+const POLL_INTERVAL_MS = 5_000 // FIX F-05: reduced from 30_000 for responsive pending state handling
 const MAX_RETRIES = 3
 const RETRY_DELAYS_MS = [1000, 2000, 4000]
 

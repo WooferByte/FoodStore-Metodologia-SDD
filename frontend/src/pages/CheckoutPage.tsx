@@ -162,7 +162,9 @@ export default function CheckoutPage() {
         const id = parseInt(pedidoIdParam, 10)
         if (!isNaN(id)) setPedidoId(id)
       }
-      setStatus('pending')
+      // FIX F-06: use 'waiting_payment' (not 'pending') so usePaymentStatusPolling
+      // activates and determines the real payment state via the backend API
+      setStatus('waiting_payment')
     }
   }, [searchParams, setPedidoId, setStatus])
 
@@ -232,8 +234,10 @@ export default function CheckoutPage() {
       },
       {
         onSuccess: (orderData) => {
-          // createPreference is triggered inside useCreateOrder via onSuccess,
-          // but we also need it here to open the MP modal after preference is ready
+          // FIX F-03: set creating_preference status BEFORE calling createPreference
+          // so MercadoPagoButton shows "Generando pago..." during preference creation
+          setStatus('creating_preference')
+          setPedidoId(orderData.id)
           createPreferenceMutation.mutate(
             { pedido_id: orderData.id },
             {

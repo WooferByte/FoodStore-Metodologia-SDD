@@ -130,6 +130,14 @@ async def crear_preferencia(
             },
         )
 
+    # B-03 fix: log at entry so we can correlate requests in ngrok dashboard
+    logger.info(
+        "crear_preferencia: pedido_id=%s usuario_id=%s total=%s",
+        pedido_id,
+        usuario_id,
+        pedido.total,
+    )
+
     # 9.1d — Build MP preference payload
     external_reference = str(pedido_id)
     frontend_base = settings.frontend_url.rstrip("/")
@@ -137,6 +145,14 @@ async def crear_preferencia(
         settings.mercadopago_webhook_url
         or "http://localhost:8000/api/v1/webhooks/mercadopago"
     )
+
+    # B-04 fix: warn when webhook URL is the localhost fallback — MP cannot reach localhost
+    if not settings.mercadopago_webhook_url:
+        logger.warning(
+            "MERCADOPAGO_WEBHOOK_URL no configurado — usando fallback %s. "
+            "MP no podra enviar webhooks a esta URL en produccion.",
+            notification_url,
+        )
     preference_data = {
         "items": [
             {
@@ -190,6 +206,14 @@ async def crear_preferencia(
     )
 
     pago = await uow.pagos.create(pago)
+
+    # B-03 fix: log success so we can confirm correct data went to MP
+    logger.info(
+        "crear_preferencia OK: preference_id=%s pago_id=%s init_point=%.80s",
+        preference_id,
+        pago.id,
+        init_point,
+    )
 
     return CrearPreferenciaResponse(
         init_point=init_point,
@@ -307,6 +331,14 @@ async def procesar_webhook(
 
     mp_id = data_id or None
 
+    # B-03 fix: log at entry for every webhook received — correlates with ngrok dashboard
+    logger.info(
+        "procesar_webhook: topic=%s mp_id=%s request_id=%s",
+        topic,
+        mp_id,
+        request_id,
+    )
+
     # 9.2b — INSERT into pago_webhook_log BEFORE processing
     log_entry = PagoWebhookLog(
         mercadopago_id=mp_id,
@@ -344,8 +376,16 @@ async def procesar_webhook(
                     "Webhook signature invalid (ENV=development, continuing anyway). " "mp_id=%s",
                     mp_id,
                 )
+            else:
+                logger.info(
+                    "Webhook signature: development mode — signature valid, processing. mp_id=%s",
+                    mp_id,
+                )
         else:
-            logger.debug("Webhook received without x-signature (ENV=development). mp_id=%s", mp_id)
+            logger.info(
+                "Webhook signature: development mode — processing without strict validation. mp_id=%s",
+                mp_id,
+            )
 
     # 9.2d — Process payment notification (wrap in try-except to always return 200)
     try:
@@ -408,6 +448,12 @@ async def procesar_webhook(
                 new_pago = await uow.pagos.create(new_pago)
                 await uow.session.flush()
                 existing_pago = new_pago
+                logger.info(
+                    "Webhook: Pago creado para mp_id=%s pedido_id=%s estado=%s",
+                    mp_id,
+                    pedido_id,
+                    mp_status,
+                )
             except IntegrityError:
                 await uow.session.rollback()
                 # Race condition: another request already created the Pago — fetch it
@@ -416,10 +462,17 @@ async def procesar_webhook(
         else:
             # Update existing pago status if changed
             if existing_pago.mp_status != mp_status:
+                prev_status = existing_pago.mp_status
                 existing_pago.mp_status = mp_status
                 existing_pago.actualizado_en = datetime.utcnow()
                 uow.session.add(existing_pago)
                 await uow.session.flush()
+                logger.info(
+                    "Webhook: Pago actualizado mp_id=%s estado %s -> %s",
+                    mp_id,
+                    prev_status,
+                    mp_status,
+                )
 
         # 9.2g — Trigger FSM transition if payment approved
         if mp_status == "approved" and pedido_id:

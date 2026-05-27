@@ -37,7 +37,8 @@ export function PaymentStatusModal() {
   const { isPolling } = usePaymentStatusPolling(pedidoId)
 
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const isVisible = status === 'success' || status === 'error' || status === 'pending'
+  // FIX F-06: also show for 'waiting_payment' so polling spinner is visible after ?payment=pending redirect
+  const isVisible = status === 'success' || status === 'error' || status === 'pending' || status === 'waiting_payment'
 
   const titleId = 'payment-status-modal-title'
 
@@ -208,7 +209,7 @@ export function PaymentStatusModal() {
       )}
 
       {/* ── Polling indicator (shown while actively checking payment status) ── */}
-      {isPolling && (
+      {isPolling && status !== 'waiting_payment' && (
         <div
           role="status"
           aria-live="polite"
@@ -235,6 +236,77 @@ export function PaymentStatusModal() {
             />
           </svg>
           <span>Verificando pago...</span>
+        </div>
+      )}
+
+      {/* ── Waiting Payment (FIX F-06) ───────────────────────────── */}
+      {/* Shown after ?payment=pending redirect — polling is active and determining real state */}
+      {status === 'waiting_payment' && (
+        <div className="flex flex-col items-center gap-4 text-center" data-testid="payment-waiting-section">
+          <div
+            aria-hidden="true"
+            className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600"
+          >
+            <svg
+              className="h-9 w-9 animate-spin"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+          </div>
+
+          <h2
+            id={titleId}
+            className="text-xl font-bold text-foreground"
+          >
+            Verificando tu pago...
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Estamos confirmando tu pago con MercadoPago. Esto puede tomar unos segundos.
+          </p>
+
+          {/* Show retry count only after first attempt fails */}
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex items-center gap-2 text-xs text-muted-foreground"
+          >
+            <svg
+              className="size-3 animate-spin"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            <span>Consultando estado del pago...</span>
+          </div>
         </div>
       )}
 

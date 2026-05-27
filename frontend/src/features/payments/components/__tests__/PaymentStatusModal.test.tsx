@@ -5,6 +5,7 @@
  *   - success mode: renders check icon, "¡Pago exitoso!", "Ver mi pedido" button
  *   - error mode: renders X icon, "El pago no pudo procesarse", retry + cancel buttons
  *   - pending mode: renders clock icon, "Pago en proceso", "Ver mis pedidos" button
+ *   - waiting_payment mode: renders spinner, "Verificando tu pago..." (FIX F-06)
  *   - Not visible when status is 'idle', 'creating_order', etc.
  *   - "Ver mi pedido" navigates to /pedidos/{pedidoId} and resets store
  *   - "Intentar de nuevo" calls createPreference with current pedidoId
@@ -77,8 +78,8 @@ describe('PaymentStatusModal', () => {
       expect(screen.queryByTestId('payment-status-modal')).not.toBeInTheDocument()
     })
 
-    it('returns null when status is waiting_payment', () => {
-      setStore({ status: 'waiting_payment' })
+    it('returns null when status is creating_preference', () => {
+      setStore({ status: 'creating_preference' })
       renderModal()
       expect(screen.queryByTestId('payment-status-modal')).not.toBeInTheDocument()
     })
@@ -152,6 +153,32 @@ describe('PaymentStatusModal', () => {
       renderModal()
       fireEvent.click(screen.getByTestId('modal-cancel-btn'))
       expect(usePaymentStore.getState().status).toBe('idle')
+    })
+  })
+
+  describe('Modo waiting_payment (FIX F-06)', () => {
+    beforeEach(() => setStore({ status: 'waiting_payment', pedidoId: 77 }))
+
+    it('renders the modal in waiting_payment mode', () => {
+      renderModal()
+      expect(screen.getByTestId('payment-status-modal')).toBeInTheDocument()
+    })
+
+    it('shows "Verificando tu pago..." title', () => {
+      renderModal()
+      expect(screen.getByText('Verificando tu pago...')).toBeInTheDocument()
+    })
+
+    it('shows confirmation message', () => {
+      renderModal()
+      expect(
+        screen.getByText(/Estamos confirmando tu pago con MercadoPago/i),
+      ).toBeInTheDocument()
+    })
+
+    it('shows the waiting section with data-testid', () => {
+      renderModal()
+      expect(screen.getByTestId('payment-waiting-section')).toBeInTheDocument()
     })
   })
 

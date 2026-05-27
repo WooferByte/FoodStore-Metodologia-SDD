@@ -1,101 +1,39 @@
 /**
- * MercadoPagoButton — button to initiate the MercadoPago checkout modal.
+ * MercadoPagoButton — redirects the user to the MercadoPago checkout page.
  *
- * Uses the brickless flow:
- *   new window.MercadoPago(publicKey, { locale: 'es-AR' })
- *   mp.checkout({ preference: { id: preferenceId }, autoOpen: true })
+ * Uses a direct page redirect to initPoint (returned by the backend when
+ * creating the preference). This works correctly in sandbox/test mode
+ * whereas the JS SDK modal does not redirect after login.
  *
  * States:
- *   - idle with preferenceId: enabled, shows "Pagar con MercadoPago"
+ *   - idle with initPoint: enabled, shows "Pagar con MercadoPago"
  *   - creating_order | creating_preference: loading spinner, disabled
- *   - SDK not available: disabled with error message
- *   - no preferenceId yet: disabled (waiting for preference creation)
- *
- * The SDK is loaded via CDN in index.html with defer.
- * Availability verified via typeof window.MercadoPago !== 'undefined'.
+ *   - no initPoint yet: disabled (waiting for preference creation)
  */
 
-import { useRef, useEffect, useState } from 'react'
 import { usePaymentStore } from '@/store/paymentStore'
 
 interface MercadoPagoButtonProps {
-  /** Called when the MP checkout is initiated */
+  /** Called just before the redirect happens */
   onCheckoutOpen?: () => void
 }
 
 export function MercadoPagoButton({ onCheckoutOpen }: MercadoPagoButtonProps) {
-  const preferenceId = usePaymentStore((state) => state.preferenceId)
+  const initPoint = usePaymentStore((state) => state.initPoint)
   const status = usePaymentStore((state) => state.status)
   const setStatus = usePaymentStore((state) => state.setStatus)
-
-  const [sdkAvailable, setSdkAvailable] = useState(false)
-  const [sdkError, setSdkError] = useState(false)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mpInstanceRef = useRef<any>(null)
-
-  // Check SDK availability and initialize after mount
-  useEffect(() => {
-    if (typeof window.MercadoPago === 'undefined') {
-      setSdkError(true)
-      return
-    }
-
-    setSdkAvailable(true)
-
-    // Initialize MP instance with the public key from env (or test placeholder)
-    const publicKey = import.meta.env.VITE_MP_PUBLIC_KEY || 'TEST-key'
-    try {
-      mpInstanceRef.current = new window.MercadoPago(publicKey, {
-        locale: 'es-AR',
-      })
-    } catch (err) {
-      console.error('[MercadoPagoButton] Failed to initialize SDK:', err)
-      setSdkError(true)
-      setSdkAvailable(false)
-    }
-
-    // Cleanup: clear instance reference on unmount
-    return () => {
-      mpInstanceRef.current = null
-    }
-  }, [])
 
   const isLoading =
     status === 'creating_order' || status === 'creating_preference'
 
-  const isDisabled =
-    !sdkAvailable ||
-    sdkError ||
-    !preferenceId ||
-    isLoading ||
-    status === 'waiting_payment'
+  const isDisabled = !initPoint || isLoading || status === 'waiting_payment'
 
   function handleClick() {
-    if (isDisabled || !mpInstanceRef.current || !preferenceId) return
+    if (isDisabled || !initPoint) return
 
-    try {
-      mpInstanceRef.current.checkout({
-        preference: { id: preferenceId },
-        autoOpen: true,
-      })
-      setStatus('waiting_payment')
-      onCheckoutOpen?.()
-    } catch (err) {
-      console.error('[MercadoPagoButton] checkout() failed:', err)
-      setStatus('error')
-    }
-  }
-
-  if (sdkError) {
-    return (
-      <div
-        role="alert"
-        className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
-      >
-        El procesador de pagos no está disponible. Por favor, recargá la
-        página e intentá nuevamente.
-      </div>
-    )
+    setStatus('waiting_payment')
+    onCheckoutOpen?.()
+    window.location.href = initPoint
   }
 
   return (
@@ -117,7 +55,6 @@ export function MercadoPagoButton({ onCheckoutOpen }: MercadoPagoButtonProps) {
     >
       {isLoading ? (
         <>
-          {/* Spinner */}
           <svg
             className="h-4 w-4 animate-spin"
             xmlns="http://www.w3.org/2000/svg"
@@ -150,7 +87,7 @@ export function MercadoPagoButton({ onCheckoutOpen }: MercadoPagoButtonProps) {
           <span aria-hidden="true">💳</span>
           <span>
             {status === 'waiting_payment'
-              ? 'Procesando pago...'
+              ? 'Redirigiendo...'
               : 'Pagar con MercadoPago'}
           </span>
         </>
