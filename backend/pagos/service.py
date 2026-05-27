@@ -32,6 +32,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
+from urllib.parse import urlparse
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -146,13 +147,39 @@ async def crear_preferencia(
         or "http://localhost:8000/api/v1/webhooks/mercadopago"
     )
 
-    # B-04 fix: warn when webhook URL is the localhost fallback — MP cannot reach localhost
+    # B-04 fix: warn when webhook URL is the localhost fallback
     if not settings.mercadopago_webhook_url:
         logger.warning(
             "MERCADOPAGO_WEBHOOK_URL no configurado — usando fallback %s. "
             "MP no podra enviar webhooks a esta URL en produccion.",
             notification_url,
         )
+
+    # Derivar URL pública del backend desde el webhook URL (ej: https://xxx.ngrok-free.dev)
+    # MP requiere back_urls con HTTPS para aceptar auto_return: "approved".
+    # Usamos el endpoint /pagos/retorno del backend (que ya es HTTPS via ngrok)
+    # para recibir el redirect de MP y luego redirigir al frontend en localhost.
+    backend_public_base = ""
+    if settings.mercadopago_webhook_url:
+        parsed = urlparse(settings.mercadopago_webhook_url)
+        if parsed.scheme == "https":
+            backend_public_base = f"{parsed.scheme}://{parsed.netloc}"
+
+    if backend_public_base:
+        back_urls = {
+            "success": f"{backend_public_base}/api/v1/pagos/retorno?payment=success&pedido_id={pedido_id}",
+            "failure": f"{backend_public_base}/api/v1/pagos/retorno?payment=failure&pedido_id={pedido_id}",
+            "pending": f"{backend_public_base}/api/v1/pagos/retorno?payment=pending&pedido_id={pedido_id}",
+        }
+        logger.info("back_urls via ngrok backend: %s", back_urls["success"])
+    else:
+        back_urls = {
+            "success": f"{frontend_base}/checkout?payment=success&pedido_id={pedido_id}",
+            "failure": f"{frontend_base}/checkout?payment=failure&pedido_id={pedido_id}",
+            "pending": f"{frontend_base}/checkout?payment=pending&pedido_id={pedido_id}",
+        }
+        logger.warning("Sin HTTPS backend URL — auto_return puede ser rechazado por MP con back_urls HTTP")
+
     preference_data = {
         "items": [
             {
@@ -164,11 +191,7 @@ async def crear_preferencia(
             }
         ],
         "external_reference": external_reference,
-        "back_urls": {
-            "success": f"{frontend_base}/checkout?payment=success&pedido_id={pedido_id}",
-            "failure": f"{frontend_base}/checkout?payment=failure&pedido_id={pedido_id}",
-            "pending": f"{frontend_base}/checkout?payment=pending&pedido_id={pedido_id}",
-        },
+        "back_urls": back_urls,
         "auto_return": "approved",
         "notification_url": notification_url,
     }

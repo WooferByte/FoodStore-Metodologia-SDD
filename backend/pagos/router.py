@@ -23,9 +23,10 @@ Architecture: Router → Service → UoW → Repository → Model
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, Request, status
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, Header, Query, Request, status
+from fastapi.responses import JSONResponse, RedirectResponse
 
+from core.config import settings
 from core.dependencies import get_current_user, get_mp_sdk, require_role
 from core.limiter import limiter
 from core.models import Usuario
@@ -81,6 +82,29 @@ async def crear_preferencia(
             sdk=sdk,
             uow=uow,
         )
+
+
+# ---------------------------------------------------------------------------
+# GET /pagos/retorno  — redirect de MercadoPago back_url al frontend
+# ---------------------------------------------------------------------------
+
+
+@pagos_router.get(
+    "/retorno",
+    status_code=status.HTTP_302_FOUND,
+    include_in_schema=False,
+)
+async def retorno_mp(
+    payment: str = Query(default="failure"),
+    pedido_id: Optional[int] = Query(default=None),
+) -> RedirectResponse:
+    """Recibe el redirect de MP back_url y redirige al frontend checkout."""
+    frontend_base = settings.frontend_url.rstrip("/")
+    params = f"payment={payment}"
+    if pedido_id is not None:
+        params += f"&pedido_id={pedido_id}"
+    logger.info("retorno_mp: payment=%s pedido_id=%s → %s/checkout?%s", payment, pedido_id, frontend_base, params)
+    return RedirectResponse(url=f"{frontend_base}/checkout?{params}")
 
 
 # ---------------------------------------------------------------------------
