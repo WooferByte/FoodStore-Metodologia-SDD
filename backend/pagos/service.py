@@ -169,6 +169,7 @@ async def crear_preferencia(
             "failure": f"{frontend_base}/checkout?payment=failure&pedido_id={pedido_id}",
             "pending": f"{frontend_base}/checkout?payment=pending&pedido_id={pedido_id}",
         },
+        "auto_return": "approved",
         "notification_url": notification_url,
     }
 
