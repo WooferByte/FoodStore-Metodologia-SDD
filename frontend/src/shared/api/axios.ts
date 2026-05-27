@@ -212,12 +212,17 @@ apiClient.interceptors.response.use(
     }
 
     // --- We are the first 401 — initiate the refresh (Task 3.4) ---
+    const refreshToken = useAuthStore.getState().refreshToken
+
+    // Anonymous user (no refresh token) — don't attempt refresh or redirect
+    if (!refreshToken) {
+      return Promise.reject(error)
+    }
+
     isRefreshing = true
     originalConfig._retry = true
 
     try {
-      const refreshToken = useAuthStore.getState().refreshToken
-
       const { data } = await refreshAxios.post<{
         access_token: string
         refresh_token: string

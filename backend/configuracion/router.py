@@ -4,7 +4,7 @@ Configuracion router — HTTP endpoints for system configuration management.
 Architecture: Router → Service → UoW → Repository → Model
 
 Endpoints:
-    GET  /api/v1/admin/configuracion           — list all configs (ADMIN only)
+    GET  /api/v1/admin/configuracion           — list all configs (public, no auth required)
     PUT  /api/v1/admin/configuracion/{clave}   — update config (ADMIN only)
 """
 
@@ -28,13 +28,12 @@ router = APIRouter(prefix="/configuracion", tags=["Configuración del Sistema"])
     "/",
     response_model=list[ConfiguracionResponse],
     summary="List all system configurations",
-    description="Returns all system configuration entries. Accessible to any authenticated user.",
+    description="Returns all system configuration entries. Public — no authentication required.",
 )
 async def list_configuraciones(
     uow: UnitOfWork = Depends(get_uow),
-    _: Usuario = Depends(get_current_user),
 ) -> list[ConfiguracionResponse]:
-    """List all system configurations (any authenticated user)."""
+    """List all system configurations (public endpoint)."""
     async with uow:
         return await service.list_configuraciones(uow)
 
