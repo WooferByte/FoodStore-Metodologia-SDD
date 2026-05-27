@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     # MercadoPago
     mp_access_token: str = Field(default="", alias="MP_ACCESS_TOKEN")
     mercadopago_public_key: str = Field(default="", alias="MERCADOPAGO_PUBLIC_KEY")
+    mercadopago_webhook_url: str = Field(default="", alias="MERCADOPAGO_WEBHOOK_URL")
+    mercadopago_webhook_secret: str = Field(default="", alias="MERCADOPAGO_WEBHOOK_SECRET")
+    frontend_url: str = Field(default="http://localhost:5173", alias="FRONTEND_URL")
 
     # Rate Limiting
     rate_limit_login: int = Field(default=5, alias="RATE_LIMIT_LOGIN")

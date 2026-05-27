@@ -132,6 +132,11 @@ async def crear_preferencia(
 
     # 9.1d — Build MP preference payload
     external_reference = str(pedido_id)
+    frontend_base = settings.frontend_url.rstrip("/")
+    notification_url = (
+        settings.mercadopago_webhook_url
+        or "http://localhost:8000/api/v1/webhooks/mercadopago"
+    )
     preference_data = {
         "items": [
             {
@@ -144,11 +149,12 @@ async def crear_preferencia(
         ],
         "external_reference": external_reference,
         "back_urls": {
-            "success": "http://localhost:5173/checkout/success",
-            "failure": "http://localhost:5173/checkout/failure",
-            "pending": "http://localhost:5173/checkout/pending",
+            "success": f"{frontend_base}/checkout?payment=success&pedido_id={pedido_id}",
+            "failure": f"{frontend_base}/checkout?payment=failure&pedido_id={pedido_id}",
+            "pending": f"{frontend_base}/checkout?payment=pending&pedido_id={pedido_id}",
         },
-        "notification_url": "http://localhost:8000/api/v1/webhooks/mercadopago",
+        "auto_return": "approved",
+        "notification_url": notification_url,
     }
 
     # 9.1e — Call MP SDK
