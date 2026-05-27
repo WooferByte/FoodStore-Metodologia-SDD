@@ -180,6 +180,9 @@ async def crear_preferencia(
             raise ValueError(f"MP SDK returned unexpected response: {preference_response}")
         preference_id = response_body["id"]
         init_point = response_body.get("init_point", "")
+        sandbox_init_point = response_body.get("sandbox_init_point", "")
+        # En sandbox MP devuelve sandbox_init_point (no init_point). Usar la URL correcta según env.
+        redirect_url = init_point if settings.env == "production" else (sandbox_init_point or init_point)
     except Exception as exc:
         logger.error("MercadoPago SDK error creating preference: %s", exc)
         raise HTTPException(
@@ -209,14 +212,15 @@ async def crear_preferencia(
 
     # B-03 fix: log success so we can confirm correct data went to MP
     logger.info(
-        "crear_preferencia OK: preference_id=%s pago_id=%s init_point=%.80s",
+        "crear_preferencia OK: preference_id=%s pago_id=%s redirect_url=%.80s (env=%s)",
         preference_id,
         pago.id,
-        init_point,
+        redirect_url,
+        settings.env,
     )
 
     return CrearPreferenciaResponse(
-        init_point=init_point,
+        init_point=redirect_url,
         preference_id=preference_id,
         pago_id=pago.id,
     )

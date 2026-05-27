@@ -213,13 +213,13 @@ export default function CheckoutPage() {
     }
 
     setFormErrors({})
-    setStatus('creating_order')
 
-    // Build order payload from cart
     if (!selectedAddressId) {
       addToast({ message: 'Seleccioná una dirección de entrega', type: 'warning' })
       return
     }
+
+    setStatus('creating_order')
 
     createOrderMutation.mutate(
       {
