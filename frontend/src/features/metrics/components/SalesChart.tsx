@@ -87,7 +87,7 @@ export const SalesChart = memo(function SalesChart({ data, isLoading }: SalesCha
             dataKey="total_ventas"
             stroke={CHART_COLORS.primary}
             strokeWidth={2}
-            dot={false}
+            dot={data.length <= 3}
             name="Ventas"
           />
         </LineChart>
