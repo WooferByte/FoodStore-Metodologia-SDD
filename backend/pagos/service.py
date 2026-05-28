@@ -194,9 +194,6 @@ async def crear_preferencia(
         "back_urls": back_urls,
         "notification_url": notification_url,
     }
-    # auto_return solo funciona con back_urls HTTPS — MP rechaza con HTTP (localhost)
-    if backend_public_base:
-        preference_data["auto_return"] = "approved"
 
     # 9.1e — Call MP SDK
     try:

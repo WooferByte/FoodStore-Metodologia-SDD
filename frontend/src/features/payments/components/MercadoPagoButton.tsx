@@ -33,7 +33,13 @@ export function MercadoPagoButton({ onCheckoutOpen }: MercadoPagoButtonProps) {
 
     setStatus('waiting_payment')
     onCheckoutOpen?.()
-    window.location.href = initPoint
+
+    // Abrir en nueva pestaña para que el polling siga activo en ésta.
+    // Fallback a navegación directa si el popup fue bloqueado.
+    const tab = window.open(initPoint, '_blank', 'noopener')
+    if (!tab) {
+      window.location.href = initPoint
+    }
   }
 
   return (
