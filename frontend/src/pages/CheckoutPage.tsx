@@ -149,7 +149,9 @@ export default function CheckoutPage() {
       const id = parseInt(pedidoIdParam, 10)
       if (!isNaN(id)) {
         setPedidoId(id)
-        setStatus('success')
+        // No asumir éxito directo — el polling verifica con el backend y confirma el pedido
+        // si el webhook no llegó (usa fallback de consulta directa a MP en get_pago_status)
+        setStatus('waiting_payment')
       }
     } else if (paymentResult === 'failure') {
       if (pedidoIdParam) {
