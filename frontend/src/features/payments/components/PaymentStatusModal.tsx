@@ -273,10 +273,10 @@ export function PaymentStatusModal() {
             id={titleId}
             className="text-xl font-bold text-foreground"
           >
-            Completá tu pago en MercadoPago
+            Verificando tu pago...
           </h2>
           <p className="text-sm text-muted-foreground">
-            Se abrió una nueva pestaña con MercadoPago. Completá el pago allí y volvé acá — esta pantalla se actualizará automáticamente.
+            Estamos confirmando tu pago con MercadoPago. Esto puede tomar unos segundos.
           </p>
 
           {/* Show retry count only after first attempt fails */}

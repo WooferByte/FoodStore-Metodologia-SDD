@@ -194,6 +194,10 @@ async def crear_preferencia(
         "back_urls": back_urls,
         "notification_url": notification_url,
     }
+    # auto_return requiere back_urls HTTPS — solo activar cuando el backend está en ngrok
+    if backend_public_base:
+        preference_data["auto_return"] = "approved"
+        logger.info("auto_return habilitado — back_urls usan HTTPS via ngrok")
 
     # 9.1e — Call MP SDK
     try:
