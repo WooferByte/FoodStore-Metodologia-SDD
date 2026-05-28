@@ -1,7 +1,7 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-05-26 (frontend-system-configuration-ui archivado — BLOQUE 8 COMPLETO ✅)
+> **Última actualización**: 2026-05-28 (frontend-backend-mercadopago-integration-fixes archivado — fixes sandbox MP antes de BLOQUE 9)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
 > **Versión mapa**: 5.0 — Estado real sincronizado
 
@@ -565,6 +565,17 @@ Hook `usePaymentStatusPolling(pedidoId)` — polling cada 30s a `GET /api/v1/pag
 
 ---
 
+### ✅ `frontend-backend-mercadopago-integration-fixes`
+Archivado: `2026-05-28-frontend-backend-mercadopago-integration-fixes`
+**Evidencia**: `openspec/changes/archive/2026-05-28-frontend-backend-mercadopago-integration-fixes/`
+
+Fixes de integración MercadoPago sandbox/ngrok antes del deploy. **Backend**: `sandbox_init_point` usado en no-producción (MP sandbox retorna campo distinto a `init_point`); `back_urls` derivadas del ngrok webhook URL (HTTPS requerido por MP); `auto_return: "approved"` solo cuando back_urls son HTTPS; endpoint `GET /pagos/retorno` redirige 302 de MP → frontend; `get_pago_status` consulta MP directamente como fallback cuando el webhook no llega (localhost). **Frontend**: `MercadoPagoButton` usa `window.location.href` (redirect directo, sin modal SDK); polling cada 5s (antes 30s); modal muestra `waiting_payment` state con spinner; `?payment=success` activa `waiting_payment` en vez de asumir éxito sin verificar. 662/662 vitest. Catálogo público sin login (interceptor Axios no redirige anónimos en GET públicos).
+
+**Skills**: `python-fastapi-ddd-skill`, `web-payments`, `tailwind-design-system`, `zustand-state-management`, `frontend-state-management`, `vercel-react-best-practices`
+**Dependencias**: `frontend-payment-status-polling`, `payments-mercadopago-integration-backend`
+
+---
+
 ## EPIC 12 — Panel de Administración
 
 ### ✅ `backend-admin-users-endpoints` *(Hecho — archivado 2026-05-18)*
@@ -813,6 +824,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.13 | 2026-05-28 | frontend-backend-mercadopago-integration-fixes archivado. Fixes sandbox MP: sandbox_init_point, back_urls ngrok, auto_return HTTPS, endpoint retorno 302, fallback consulta MP directo, polling 5s, waiting_payment state. 662 vitest. PRÓXIMO: BLOQUE 9 — Entrega Final. |
 | 5.12 | 2026-05-26 | frontend-system-configuration-ui archivado. Feature configuracion/admin con tabla responsive, badges de tipo, modal edición, toasts. 658 vitest. BLOQUE 8 COMPLETO ✅ PRÓXIMO: BLOQUE 9 — Entrega Final. |
 | 5.11 | 2026-05-26 | system-configuration-backend archivado. Módulo configuracion/ completo (model, repository, service, router, schemas). Migración 011. Seed 5 configs. 8 tests. PRÓXIMO: frontend-system-configuration-ui (BLOQUE 8 último change). |
 | 5.10 | 2026-05-26 | frontend-patterns-hooks-optimistic archivado. Optimistic updates en 3 mutations de pedidos. useAuth wrapper. Fix: filtros totalMin/totalMax en pedidos. PRÓXIMO: system-configuration-backend (BLOQUE 8). |
