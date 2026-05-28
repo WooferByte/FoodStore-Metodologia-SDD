@@ -552,6 +552,7 @@ async def get_pago_status(
     usuario_id: int,
     es_admin: bool,
     uow: UnitOfWork,
+    sdk=None,
 ) -> PagoStatusResponse:
     """
     Return current payment status for a given order.
@@ -610,12 +611,52 @@ async def get_pago_status(
             },
         )
 
+    # Fallback: si el pago sigue "pending" y tenemos SDK, consultar MP directamente.
+    # Esto permite que el polling del frontend detecte pagos aprobados aunque el
+    # webhook no haya llegado (ej: notification_url apunta a localhost en dev).
+    mp_status = pago.mp_status or "pending"
+    if mp_status == "pending" and sdk is not None:
+        try:
+            search_resp = sdk.payment().search({"external_reference": str(pedido_id)})
+            if search_resp.get("status") == 200:
+                results = search_resp.get("response", {}).get("results", [])
+                for payment in results:
+                    real_status = payment.get("status", "pending")
+                    mp_id = str(payment.get("id", ""))
+                    if real_status in ("approved", "rejected", "cancelled"):
+                        mp_status = real_status
+                        # Actualizar el Pago en BD
+                        pago.mp_status = real_status
+                        if mp_id and not pago.mp_payment_id:
+                            pago.mp_payment_id = mp_id
+                        uow.session.add(pago)
+                        await uow.session.flush()
+                        logger.info(
+                            "get_pago_status fallback: pedido_id=%s estado MP real=%s",
+                            pedido_id, real_status,
+                        )
+                        # Confirmar pedido si fue aprobado
+                        if real_status == "approved" and pedido.estado_pedido_id == 1:
+                            try:
+                                from pedidos.service import confirmar_pedido_por_pago
+                                await confirmar_pedido_por_pago(pedido_id=pedido_id, uow=uow)
+                                logger.info(
+                                    "get_pago_status: pedido_id=%s confirmado via fallback MP poll",
+                                    pedido_id,
+                                )
+                            except HTTPException as e:
+                                if e.status_code != 409:
+                                    logger.warning("FSM error en fallback: %s", e.detail)
+                        break
+        except Exception as exc:
+            logger.warning("get_pago_status MP fallback error: %s", exc)
+
     return PagoStatusResponse(
         pago_id=pago.id,
         pedido_id=pago.pedido_id,
         mercadopago_id=pago.mp_payment_id,
         preference_id=getattr(pago, "preference_id", None),
-        estado=pago.mp_status or "pending",
+        estado=mp_status,
         monto=pedido.total,
         creado_en=pago.creado_en,
         actualizado_en=pago.actualizado_en,

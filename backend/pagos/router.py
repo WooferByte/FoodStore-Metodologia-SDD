@@ -125,6 +125,7 @@ async def retorno_mp(
 async def get_pago_status(
     pedido_id: int,
     current_user: Usuario = Depends(require_role(["CLIENT", "ADMIN"])),
+    sdk=Depends(get_mp_sdk),
     uow: UnitOfWork = Depends(get_uow),
 ) -> PagoStatusResponse:
     """Return current payment status for a given order."""
@@ -135,6 +136,7 @@ async def get_pago_status(
             usuario_id=current_user.id,
             es_admin=es_admin,
             uow=uow,
+            sdk=sdk,
         )
 
 
