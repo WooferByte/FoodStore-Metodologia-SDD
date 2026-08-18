@@ -33,29 +33,21 @@ For detailed documentation, design decisions, and setup guides, see **[`docs/IND
 
 ## Quick Start
 
-### ⚡ Super Quick: Automated Setup (Recommended)
+### ⚡ One-Click Setup (Windows — Recommended)
 
-If you're on Windows or having Docker/database issues, use the automated setup script:
+**Windows:** doble clic en `setup-dev.bat` (o `.\setup-dev.ps1` desde PowerShell). Levanta TODO:
 
-**Windows (PowerShell):**
-```powershell
-.\setup-dev.ps1
-```
+- ✅ Verifica Docker Desktop y levanta PostgreSQL (Docker Compose, named volume, arranque limpio con `down -v`)
+- ✅ Crea el venv del backend e instala dependencias (`requirements.txt`)
+- ✅ Crea `backend/.env` y `frontend/.env` desde sus `.env.example` (si no existen)
+- ✅ Corre migraciones Alembic (`upgrade head`)
+- ✅ Seed de datos de prueba (`backend/scripts/seed.py`)
+- ✅ Instala dependencias del frontend (`npm ci` si hay `package-lock.json`)
+- ✅ Arranca backend (uvicorn, puerto 8000) y frontend (vite, puerto 5173) en ventanas separadas con logs
 
-**Mac/Linux (Bash):**
-```bash
-chmod +x setup-dev.sh
-./setup-dev.sh
-```
+> Nota: `setup-dev.sh` (Mac/Linux) fue removido — se reconsiderará a futuro.
 
-This script will:
-- ✅ Clean up old Docker containers and volumes
-- ✅ Manage PostgreSQL data via Docker named volume (no local data/ bind mount)
-- ✅ Start PostgreSQL container and wait for it to be ready
-- ✅ Run Alembic migrations
-- ✅ Seed the database with test data
-
-Then follow the printed instructions to start backend and frontend.
+Si preferís los pasos manuales, seguí la **Option 1** de abajo.
 
 ---
 
