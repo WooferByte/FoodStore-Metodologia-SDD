@@ -11,9 +11,9 @@ For detailed documentation, design decisions, and setup guides, see **[`docs/IND
 ## Tech Stack
 
 ### Backend
-- **Framework**: FastAPI (Python 3.9+)
-- **Database**: PostgreSQL 12+
-- **ORM**: SQLAlchemy
+- **Framework**: FastAPI (Python 3.10+)
+- **Database**: PostgreSQL 16
+- **ORM**: SQLModel (SQLAlchemy-based)
 - **Authentication**: JWT (JSON Web Tokens)
 - **Validation**: Pydantic
 - **Payment**: MercadoPago API
@@ -50,7 +50,7 @@ chmod +x setup-dev.sh
 
 This script will:
 - ✅ Clean up old Docker containers and volumes
-- ✅ Remove stale local database files
+- ✅ Manage PostgreSQL data via Docker named volume (no local data/ bind mount)
 - ✅ Start PostgreSQL container and wait for it to be ready
 - ✅ Run Alembic migrations
 - ✅ Seed the database with test data
@@ -66,7 +66,7 @@ This is the fastest way to get a development environment running.
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd RepositorioBaseFoodStore-SDD
+   cd Metodolog-a-SDD---Gest-on-de-Desarrollo-de-Software
    ```
 
 2. **Start PostgreSQL with Docker Compose**
@@ -82,22 +82,26 @@ This is the fastest way to get a development environment running.
    # Should show: "accepting connections"
    ```
 
-4. **Configure environment variables**
+4. **Configure environment variables** (per sub-project: the backend reads `backend/.env`, the frontend reads `frontend/.env`)
    ```bash
-   cp .env.example .env
-   # The DATABASE_URL is already set for Docker: postgresql+asyncpg://postgres:postgres@localhost:5433/foodstore_db
+   cp backend/.env.example backend/.env
+   cp frontend/.env.example frontend/.env
+   # DATABASE_URL already points to host port 5433 (Docker Compose): postgresql+asyncpg://postgres:postgres@localhost:5433/foodstore_db
    ```
 
 5. **Setup Backend**
    ```bash
    cd backend
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows (PowerShell): .\.venv\Scripts\Activate.ps1
    pip install -r requirements.txt
-   
+
+   # Apply database migrations
+   alembic upgrade head
+
    # Seed initial data
    python scripts/seed.py
-   
+
    # Start the backend
    python -m uvicorn main:app --reload
    ```
@@ -122,7 +126,7 @@ If you already have PostgreSQL running locally, or prefer not to use Docker.
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd RepositorioBaseFoodStore-SDD
+   cd Metodolog-a-SDD---Gest-on-de-Desarrollo-de-Software
    ```
 
 2. **Create PostgreSQL database**
@@ -134,21 +138,24 @@ If you already have PostgreSQL running locally, or prefer not to use Docker.
 
 3. **Configure environment variables**
    ```bash
-   cp .env.example .env
-   # Edit .env and set DATABASE_URL for your PostgreSQL instance:
+   cp backend/.env.example backend/.env
+   # Edit backend/.env and set DATABASE_URL for your native PostgreSQL instance:
    # DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/foodstore_db
    ```
 
 4. **Setup Backend**
    ```bash
    cd backend
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows (PowerShell): .\.venv\Scripts\Activate.ps1
    pip install -r requirements.txt
-   
+
+   # Apply database migrations
+   alembic upgrade head
+
    # Seed initial data
    python scripts/seed.py
-   
+
    # Start the backend
    python -m uvicorn main:app --reload
    ```
@@ -169,7 +176,7 @@ API Docs: `http://localhost:8000/docs`
 ### Troubleshooting
 
 **Docker issues:**
-- Port 5432 already in use: `docker ps` to see running containers, `docker kill <container>` if needed
+- Port 5433 already in use: `docker ps` to see running containers, `docker kill <container>` if needed
 - Docker daemon not running: Start Docker Desktop or the Docker service
 - Permission denied on Linux: Add user to docker group: `sudo usermod -aG docker $USER`
 
@@ -186,7 +193,7 @@ API Docs: `http://localhost:8000/docs`
 ## Project Structure
 
 ```
-RepositorioBaseFoodStore-SDD/
+Metodolog-a-SDD---Gest-on-de-Desarrollo-de-Software/
 ├── backend/
 │   ├── auth/               # Authentication & authorization
 │   ├── usuarios/           # User management
@@ -210,7 +217,9 @@ RepositorioBaseFoodStore-SDD/
 │       ├── entities/       # Domain entities
 │       └── shared/         # Shared utilities & constants
 │
-├── .env.example            # Environment variables template
+├── .env.example            # Env template for docker-compose interpolation (POSTGRES_*, secrets)
+├── backend/.env.example    # Backend env template (DATABASE_URL, JWT, MercadoPago)
+├── frontend/.env.example   # Frontend env template (VITE_API_BASE_URL, VITE_MP_PUBLIC_KEY)
 ├── .gitignore              # Git ignore patterns
 └── README.md               # This file
 ```
@@ -273,23 +282,4 @@ This project is part of an educational initiative.
 
 ---
 
-**Last Updated**: April 2026
-
-<!-- Crear entorno -->
-python -m venv .venv
-
-## Activar entorno
-En directorio: fastapi_backend
-source .venv/Scripts/activate
-
-<!-- Innstalar dependenciar -->
-pip install -r requirements.txt
-
-
-## Ir al directorio del ejercicio
-Ej: (.venv) ➜ fastapi_backend cd u_01/u1_ej4/
-
-
-## Ejecutar servidor de desarrollo con Endpints
-
-(.venv) ➜ python -m fastapi dev ej_4_1.py
+**Last Updated**: August 2026

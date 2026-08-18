@@ -59,13 +59,11 @@ services:
           memory: 256M
 
 # Named volume for PostgreSQL data persistence
+# Named volume managed by Docker — survives repo moves/renames; data lives in
+# Docker storage (docker volume ls), not in data/
 volumes:
   postgres_data:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./data/postgres
 
 # Network for service communication
 networks:
