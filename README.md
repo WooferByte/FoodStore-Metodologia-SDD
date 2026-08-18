@@ -37,11 +37,11 @@ For detailed documentation, design decisions, and setup guides, see **[`docs/IND
 
 **Windows:** doble clic en `setup-dev.bat` (o `.\setup-dev.ps1` desde PowerShell). Levanta TODO:
 
-- ✅ Verifica Docker Desktop y levanta PostgreSQL (Docker Compose, named volume, arranque limpio con `down -v`)
+- ✅ Verifica Docker Desktop y levanta PostgreSQL (Docker Compose, named volume, NO destructivo: nunca borra datos ni ejecuta `down -v`)
 - ✅ Crea el venv del backend e instala dependencias (`requirements.txt`)
 - ✅ Crea `backend/.env` y `frontend/.env` desde sus `.env.example` (si no existen)
 - ✅ Corre migraciones Alembic (`upgrade head`)
-- ✅ Seed de datos de prueba (`backend/scripts/seed.py`)
+- ✅ Seed de datos de prueba (`backend/scripts/seed.py`) — automático en clon fresco (BD vacía); con confirmación interactiva si el contenedor ya existe
 - ✅ Instala dependencias del frontend (`npm ci` si hay `package-lock.json`)
 - ✅ Arranca backend (uvicorn, puerto 8000) y frontend (vite, puerto 5173) en ventanas separadas con logs
 
@@ -70,7 +70,7 @@ This is the fastest way to get a development environment running.
 
 3. **Verify PostgreSQL is running**
    ```bash
-   docker exec foodstore-postgres pg_isready
+   docker compose exec -T postgres pg_isready
    # Should show: "accepting connections"
    ```
 
@@ -174,7 +174,7 @@ API Docs: `http://localhost:8000/docs`
 
 **Database connection issues:**
 - Database URL format: Must use `postgresql+asyncpg://...` for async support
-- Health check failing: Wait longer or check `docker logs foodstore-postgres`
+- Health check failing: Wait longer or check `docker compose logs postgres`
 - Authentication failed: Verify DATABASE_URL matches credentials in .env
 
 **Backend startup issues:**
