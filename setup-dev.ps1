@@ -179,7 +179,51 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "  OK: Docker disponible." -ForegroundColor Green
 
 # ------------------------------------------------------------
-# 2) Detectar si el contenedor del proyecto YA existe
+# 2) AUTOCURACION al inicio: limpiar restos de sesiones anteriores
+#    Si una ventana se cerro con la X, uvicorn/vite/postgres pueden
+#    quedar huerfanos y ocupar el puerto 5433. Esto los limpia.
+#    OJO: mata CUALQUIER uvicorn/vite de la maquina, no solo del
+#    proyecto. Aceptable en un script de dev (autocuracion).
+# ------------------------------------------------------------
+Write-Host ""
+Write-Host "[Autocuracion] Limpiando procesos uvicorn/vite huerfanos (restos de sesiones anteriores)..." -ForegroundColor Cyan
+Get-CimInstance Win32_Process | Where-Object {
+    ($_.Name -eq "python.exe" -and $_.CommandLine -match "uvicorn") -or
+    ($_.Name -eq "node.exe" -and $_.CommandLine -match "vite")
+} | ForEach-Object {
+    Write-Host "  Limpiando proceso huerfano PID $($_.ProcessId)..." -ForegroundColor DarkYellow
+    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host "[Autocuracion] Deteniendo postgres del proyecto si quedo corriendo..." -ForegroundColor Cyan
+docker compose stop postgres 2>$null
+
+Write-Host "[Autocuracion] Verificando que el puerto 5433 este libre..." -ForegroundColor Cyan
+$portOwner = Get-NetTCPConnection -LocalPort 5433 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $portOwner) {
+    # Fallback para PowerShell viejo donde Get-NetTCPConnection no existe
+    $netstatLine = netstat -ano | Select-String ":5433\s.*LISTENING" | Select-Object -First 1
+    if ($netstatLine) { $portOwner = $netstatLine }
+}
+if ($portOwner) {
+    $ownerContainer = docker ps --format "{{.Names}}`t{{.Ports}}" | Select-String "5433" | Select-Object -First 1
+    Write-Host "  ⚠️  El puerto 5433 esta ocupado por otro contenedor:" -ForegroundColor Yellow
+    Write-Host "   $ownerContainer" -ForegroundColor Yellow
+    $resp = Read-Host "   ¿Desea detenerlo para liberar el 5433? [S/N] (default: N)"
+    if ($resp -match "^(s|y|S|Y)$") {
+        $name = ($ownerContainer -split "\s+")[0]
+        docker stop $name
+        Write-Host "  Contenedor $name detenido. Puerto 5433 liberado." -ForegroundColor Green
+    } else {
+        Write-Host "❌ No se puede continuar: el puerto 5433 esta ocupado." -ForegroundColor Red
+        exit 1
+    }
+} else {
+    Write-Host "  OK: puerto 5433 libre." -ForegroundColor Green
+}
+
+# ------------------------------------------------------------
+# 3) Detectar si el contenedor del proyecto YA existe
 # ------------------------------------------------------------
 $containerExists = Test-ContainerExists
 if ($containerExists) {
@@ -191,7 +235,7 @@ if ($containerExists) {
 }
 
 # ------------------------------------------------------------
-# 3) Levantar PostgreSQL (nunca down/down -v: nada se destruye)
+# 4) Levantar PostgreSQL (nunca down/down -v: nada se destruye)
 # ------------------------------------------------------------
 Write-Host ""
 Write-Host "[BD] Levantando contenedor PostgreSQL (up -d)..." -ForegroundColor Cyan
@@ -205,7 +249,7 @@ if (-not (Wait-Postgres)) {
 }
 
 # ------------------------------------------------------------
-# 4) Backend: venv + dependencias (no rompe si recien clono el codigo)
+# 5) Backend: venv + dependencias (no rompe si recien clono el codigo)
 # ------------------------------------------------------------
 Ensure-Venv
 Set-Location $BACKEND_PATH
@@ -215,17 +259,17 @@ Invoke-Checked "Backend: pip install -r requirements.txt" {
 Set-Location $ROOT
 
 # ------------------------------------------------------------
-# 5) Backend + Frontend: .env desde .env.example (si no existen)
+# 6) Backend + Frontend: .env desde .env.example (si no existen)
 # ------------------------------------------------------------
 Ensure-EnvFiles
 
 # ------------------------------------------------------------
-# 6) Migraciones Alembic
+# 7) Migraciones Alembic
 # ------------------------------------------------------------
 Update-Database
 
 # ------------------------------------------------------------
-# 7) Seed de datos de prueba (logica segun el contenedor)
+# 8) Seed de datos de prueba (logica segun el contenedor)
 # ------------------------------------------------------------
 if ($containerExists) {
     # Uso diario: pregunta interactiva, nunca borra datos sin consentimiento
@@ -248,12 +292,12 @@ if ($containerExists) {
 }
 
 # ------------------------------------------------------------
-# 8) Frontend: dependencias (si no existe node_modules) + .env
+# 9) Frontend: dependencias (si no existe node_modules) + .env
 # ------------------------------------------------------------
 Ensure-FrontendDeps
 
 # ------------------------------------------------------------
-# 9) Levantar el stack: backend (uvicorn) y frontend (vite)
+# 10) Levantar el stack: backend (uvicorn) y frontend (vite)
 #     Cada uno en su propia ventana de cmd (visible, con logs)
 # ------------------------------------------------------------
 Write-Host ""
@@ -268,7 +312,7 @@ $frontendCmd = "cd /d `"$FRONTEND_PATH`" && npm run dev"
 Start-Process cmd -ArgumentList "/k", "`"$frontendCmd`""
 
 # ------------------------------------------------------------
-# 10) Verificar que backend y frontend respondan
+# 11) Verificar que backend y frontend respondan
 # ------------------------------------------------------------
 Write-Host ""
 Write-Host "[Stack] Verificando que backend y frontend respondan..." -ForegroundColor Cyan
@@ -297,24 +341,26 @@ try {
 }
 
 # ------------------------------------------------------------
-# 11) Resumen final
+# 12) Resumen final + cierre con tecla (detiene todo y libera 5433)
 # ------------------------------------------------------------
 Write-Host ""
-Write-Host "============================================================" -ForegroundColor Green
-Write-Host "  Setup completado" -ForegroundColor Green
-Write-Host "============================================================" -ForegroundColor Green
+Write-Host "============================================================" -ForegroundColor Cyan
+Write-Host "🚀 Aplicacion lista!" -ForegroundColor Green
+Write-Host "   Frontend: http://localhost:5173" -ForegroundColor Green
+Write-Host "   Backend docs: http://localhost:8000/docs" -ForegroundColor Green
+Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "URLs:" -ForegroundColor Cyan
-Write-Host "  - Frontend:  http://localhost:5173" -ForegroundColor Gray
-Write-Host "  - Backend:   http://localhost:8000" -ForegroundColor Gray
-Write-Host "  - API Docs:  http://localhost:8000/docs" -ForegroundColor Gray
+Write-Host "📌 MANTENGA ESTA VENTANA ABIERTA mientras usa la aplicacion." -ForegroundColor Yellow
+Write-Host "   Si la cierra con la X, no pasa nada: el proximo setup limpia todo solo." -ForegroundColor DarkYellow
 Write-Host ""
-Write-Host "Credenciales de prueba:" -ForegroundColor Cyan
-Write-Host "  - admin@foodstore.com / admin123456   (ADMIN)" -ForegroundColor Gray
-Write-Host "  - cliente@foodstore.com / cliente123456 (CLIENT)" -ForegroundColor Gray
-Write-Host ""
-if (-not $backendOk -or -not $frontendOk) {
-    Write-Host "Nota: alguna ventana puede haber tardado en arrancar. Si sigue sin" -ForegroundColor Yellow
-    Write-Host "responder, revisa los logs en cada ventana de cmd que quedo abierta." -ForegroundColor Yellow
-}
-Write-Host ""
+Write-Host "⏹️  Presione cualquier tecla para DETENER la aplicacion y liberar el puerto 5433..." -ForegroundColor Cyan
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+
+Write-Host "`nDeteniendo backend y frontend..." -ForegroundColor Yellow
+Get-CimInstance Win32_Process | Where-Object {
+    ($_.Name -eq "python.exe" -and $_.CommandLine -match "uvicorn") -or
+    ($_.Name -eq "node.exe" -and $_.CommandLine -match "vite")
+} | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+Write-Host "Deteniendo PostgreSQL..." -ForegroundColor Yellow
+docker compose stop postgres
+Write-Host "✅ Todo detenido. Puerto 5433 liberado. Volvé a ejecutar setup-dev.bat para levantar de nuevo." -ForegroundColor Green
