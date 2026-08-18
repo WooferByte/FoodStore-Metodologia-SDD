@@ -85,7 +85,7 @@ This is the fastest way to get a development environment running.
 4. **Configure environment variables**
    ```bash
    cp .env.example .env
-   # The DATABASE_URL is already set for Docker: postgresql+psycopg://postgres:postgres@localhost:5432/foodstore_db
+   # The DATABASE_URL is already set for Docker: postgresql+asyncpg://postgres:postgres@localhost:5433/foodstore_db
    ```
 
 5. **Setup Backend**
@@ -136,7 +136,7 @@ If you already have PostgreSQL running locally, or prefer not to use Docker.
    ```bash
    cp .env.example .env
    # Edit .env and set DATABASE_URL for your PostgreSQL instance:
-   # DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/foodstore_db
+   # DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/foodstore_db
    ```
 
 4. **Setup Backend**
@@ -174,7 +174,7 @@ API Docs: `http://localhost:8000/docs`
 - Permission denied on Linux: Add user to docker group: `sudo usermod -aG docker $USER`
 
 **Database connection issues:**
-- Database URL format: Must use `postgresql+psycopg://...` for async support
+- Database URL format: Must use `postgresql+asyncpg://...` for async support
 - Health check failing: Wait longer or check `docker logs foodstore-postgres`
 - Authentication failed: Verify DATABASE_URL matches credentials in .env
 
