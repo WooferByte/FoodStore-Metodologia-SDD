@@ -1,9 +1,9 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-05-26 (frontend-system-configuration-ui archivado — BLOQUE 8 COMPLETO ✅)
+> **Última actualización**: 2026-08-18 (cierre documental: 4 archives huérfanos incorporados al EPIC 13 + PoC `test-opsx-workflow` documentada — último change de producto: frontend-system-configuration-ui, BLOQUE 8 COMPLETO ✅)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
-> **Versión mapa**: 5.0 — Estado real sincronizado
+> **Versión mapa**: 5.13 — Estado real sincronizado
 
 ---
 
@@ -668,6 +668,46 @@ Evidencia: `openspec/changes/archive/2026-05-26-frontend-patterns-hooks-optimist
 
 ---
 
+### ✅ `fix-build-critical` (archivado 2026-05-19)
+
+Creado `src/shared/lib/utils.ts` con `cn()` (clsx + tailwind-merge); 19 imports desbloqueados; build `npm run build` reparado.
+Evidencia: `openspec/changes/archive/2026-05-19-fix-build-critical/` (commit `b5bb873`)
+
+**Skills**: `tailwind-design-system`, `ui-design-system`
+**Dependencias**: `frontend-layout-components-shared`
+
+---
+
+### ✅ `post-merge-critical-fixes` (archivado 2026-05-19)
+
+3 fixes post-merge: tipos de `entities/product/index.ts` corregidos (FSD), `cn()` aplicado en 15+ archivos, `excluirAlergenos` + `search` agregados a `buildProductsQueryParams`.
+Evidencia: `openspec/changes/archive/2026-05-19-post-merge-critical-fixes/` (commit `8ba1211`)
+
+**Skills**: `tailwind-design-system`, `ui-design-system`
+**Dependencias**: `fix-build-critical`
+
+---
+
+### ✅ `post-merge-medium-fixes` (archivado 2026-05-19)
+
+6 componentes envueltos en `React.memo` (UsersTable, MetricsKPICards, DateRangeSelector, SalesChart, TopProductsChart, OrderStateChart), `useCallback` en UsersPage, `ROLE_COLORS` con tokens semánticos, mensajes de constantes de productos traducidos a español.
+Evidencia: `openspec/changes/archive/2026-05-19-post-merge-medium-fixes/` (commit `ae5e962`)
+
+**Skills**: `tailwind-design-system`, `vercel-react-best-practices`
+**Dependencias**: `post-merge-critical-fixes`
+
+---
+
+### ✅ `refactor-fsd-performance` (archivado 2026-05-19)
+
+`entities/` poblada (product, order, address, cart-item), widgets migrados (Navbar, Footer, Sidebar), imports unificados a `@/`, `React.memo` + `useCallback` en 4 componentes de lista (ProductCard, CartItemRow, OrderCard, OrderStatusBadge). Nota: 1 eslint-disable intencional en CheckoutPage.tsx:172 (deuda menor documentada).
+Evidencia: `openspec/changes/archive/2026-05-19-refactor-fsd-performance/` (commit `0f348ff`)
+
+**Skills**: `tailwind-design-system`, `ui-design-system`, `vercel-react-best-practices`, `frontend-state-management`
+**Dependencias**: `fix-build-critical`
+
+---
+
 ## EPIC 14 — Configuración del Sistema *(NUEVO en v3.0)*
 
 ### ✅ `system-configuration-backend` (archivado 2026-05-26)
@@ -813,6 +853,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.13 | 2026-08-18 | Cierre documental: 4 archives huérfanos incorporados al EPIC 13 (fix-build-critical, post-merge-critical-fixes, post-merge-medium-fixes, refactor-fsd-performance — todos ✅ verificados en código). `test-opsx-workflow` documentado como PoC de validación del flujo OPSX (no change de producto). |
 | 5.12 | 2026-05-26 | frontend-system-configuration-ui archivado. Feature configuracion/admin con tabla responsive, badges de tipo, modal edición, toasts. 658 vitest. BLOQUE 8 COMPLETO ✅ PRÓXIMO: BLOQUE 9 — Entrega Final. |
 | 5.11 | 2026-05-26 | system-configuration-backend archivado. Módulo configuracion/ completo (model, repository, service, router, schemas). Migración 011. Seed 5 configs. 8 tests. PRÓXIMO: frontend-system-configuration-ui (BLOQUE 8 último change). |
 | 5.10 | 2026-05-26 | frontend-patterns-hooks-optimistic archivado. Optimistic updates en 3 mutations de pedidos. useAuth wrapper. Fix: filtros totalMin/totalMax en pedidos. PRÓXIMO: system-configuration-backend (BLOQUE 8). |
