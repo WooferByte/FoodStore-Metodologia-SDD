@@ -136,6 +136,14 @@
       "sessions": 2,
       "memories": 7,
       "prompts": 23
+    },
+    {
+      "id": "1dde45ff",
+      "created_by": "Woofe",
+      "created_at": "2026-08-19T16:49:00Z",
+      "sessions": 1,
+      "memories": 7,
+      "prompts": 3
     }
   ]
 }
