@@ -37,13 +37,26 @@ For detailed documentation, design decisions, and setup guides, see **[`docs/IND
 
 **Windows:** doble clic en `setup-dev.bat` (o `.\setup-dev.ps1` desde PowerShell). Levanta TODO:
 
-- ✅ Verifica Docker Desktop y levanta PostgreSQL (Docker Compose, named volume, NO destructivo: nunca borra datos ni ejecuta `down -v`)
+### 📋 Requisitos previos
+
+Antes de ejecutar el one-click, necesitás tener instalados:
+
+| Requisito | Versión mínima | Link |
+|-----------|---------------|------|
+| Docker Desktop | — (corriendo) | https://www.docker.com/products/docker-desktop/ |
+| Python | 3.10+ (con "Add to PATH") | https://www.python.org/downloads/ |
+| Node.js + npm | 18+ | https://nodejs.org/ |
+| Git | — | https://git-scm.com/ |
+
+> El `setup-dev.bat` verifica estos requisitos al inicio y te avisa si falta alguno.
+
+- ✅ Verifica los requisitos del sistema (Docker Desktop, Python, Node.js, npm, Git) y levanta PostgreSQL (Docker Compose, named volume, NO destructivo: nunca borra datos ni ejecuta `down -v`)
 - ✅ Crea el venv del backend e instala dependencias (`requirements.txt`)
 - ✅ Crea `backend/.env` y `frontend/.env` desde sus `.env.example` (si no existen)
 - ✅ Corre migraciones Alembic (`upgrade head`)
 - ✅ Seed de datos de prueba (`backend/scripts/seed.py`) — automático en clon fresco (BD vacía); con confirmación interactiva si el contenedor ya existe
 - ✅ Instala dependencias del frontend (`npm ci` si hay `package-lock.json`)
-- ✅ Arranca backend (uvicorn, puerto 8000) y frontend (vite, puerto 5173) en ventanas separadas con logs
+- ✅ Arranca backend (uvicorn, puerto 8000) y frontend (vite, puerto 5173) — en pestañas de Windows Terminal si está disponible (fallback: 2 ventanas separadas con logs)
 
 > Nota: `setup-dev.sh` (Mac/Linux) fue removido — se reconsiderará a futuro.
 

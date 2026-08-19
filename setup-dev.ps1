@@ -41,11 +41,83 @@ function Invoke-Checked([string]$label, [scriptblock]$scriptBlock) {
     }
 }
 
+# Devuelve la version de una herramienta (o $null si no esta en PATH).
+# Normaliza stderr (los programas nativos lo emiten como ErrorRecord).
+function Get-ToolVersion {
+    param([string]$Exe, [string[]]$ToolArgs, [string]$Pattern)
+    try {
+        $out = (& $Exe @ToolArgs 2>&1 | ForEach-Object {
+            if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.Exception.Message } else { $_ }
+        }) -join "`n"
+    } catch {
+        return $null
+    }
+    if ($out -match $Pattern) { return $Matches[1] }
+    return $null
+}
+
+# Script que corre en un runspace en background: ejecuta el comando nativo,
+# captura stdout+stderr y devuelve el exit code REAL de la aplicacion.
+$ShowSpinnerScript = @'
+param($fp, $argsA, $wd)
+Set-Location -LiteralPath $wd
+$out = (& $fp @argsA 2>&1 | ForEach-Object {
+    if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.Exception.Message } else { $_ }
+}) -join "`n"
+[pscustomobject]@{ Code = $LASTEXITCODE; Output = $out }
+'@
+
+# Muestra un spinner animado (caracteres braille) mientras un paso largo corre
+# en background (runspace). Al terminar escribe "✅ DoneMessage" (verde) o
+# "❌ Message" (rojo) con las ultimas lineas del error y sale con exit 1.
+function Show-Spinner {
+    param(
+        [string]$FilePath,
+        [string[]]$Arguments,
+        [string]$Message,
+        [string]$DoneMessage = $Message,
+        [string]$WorkDir = $PWD
+    )
+    $ps = [System.Management.Automation.PowerShell]::Create()
+    [void]$ps.AddScript($ShowSpinnerScript)
+    [void]$ps.AddArgument($FilePath)
+    [void]$ps.AddArgument($Arguments)
+    [void]$ps.AddArgument($WorkDir)
+    $async = $ps.BeginInvoke()
+    $frames = @('⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏')
+    $i = 0
+    while (-not $async.IsCompleted) {
+        Write-Host "`r  $($frames[$i % $frames.Count]) $Message" -NoNewline
+        $i++
+        Start-Sleep -Milliseconds 150
+    }
+    $result = $null
+    try {
+        $result = @($ps.EndInvoke($async))[0]
+    } catch {
+        $result = [pscustomobject]@{ Code = -1; Output = $_.Exception.Message }
+    }
+    $ps.Dispose()
+    Write-Host ("`r" + (" " * 110)) -NoNewline
+    $code = -1
+    if ($result -and ($null -ne $result.Code)) { $code = $result.Code }
+    if ($code -eq 0) {
+        Write-Host "`r  ✅ $DoneMessage" -ForegroundColor Green
+    } else {
+        Write-Host "`r  ❌ $Message" -ForegroundColor Red
+        $tail = @($result.Output -split "`n" | Where-Object { $_.Trim() } | Select-Object -Last 4)
+        foreach ($line in $tail) { Write-Host "     $line" -ForegroundColor DarkGray }
+        exit 1
+    }
+}
+
 # Espera activa (polling) hasta que PostgreSQL acepte conexiones (max 60s).
 # Usa docker compose exec (nunca el container_name fijo, ya no existe).
+# Muestra una barra de progreso con # en la misma linea.
 function Wait-Postgres {
     param([int]$maxIntents = 20)
     Write-Host "[BD] Esperando a que PostgreSQL acepte conexiones (max $($maxIntents * 3)s)..." -ForegroundColor Cyan
+    $bar = ""
     for ($i = 1; $i -le $maxIntents; $i++) {
         $ready = $false
         $result = ""
@@ -59,12 +131,15 @@ function Wait-Postgres {
             $result = ""
         }
         if ($ready) {
-            Write-Host "  OK: PostgreSQL listo ($result)" -ForegroundColor Green
+            Write-Host ("`r" + (" " * 100)) -NoNewline
+            Write-Host "`r  ✅ PostgreSQL listo (aceptando conexiones)" -ForegroundColor Green
             return $true
         }
-        Write-Host "  ...intento $i/$maxIntents ($($i * 3)s). Aun no esta listo..." -ForegroundColor Gray
+        $bar += "#"
+        Write-Host "`r  ⏳ Esperando PostgreSQL: $bar" -NoNewline
         Start-Sleep -Seconds 3
     }
+    Write-Host ""
     return $false
 }
 
@@ -124,20 +199,17 @@ function Ensure-EnvFiles {
 # Instala dependencias del frontend solo si no existe node_modules
 function Ensure-FrontendDeps {
     if (-not (Test-Path -LiteralPath (Join-Path $FRONTEND_PATH "node_modules"))) {
-        Set-Location $FRONTEND_PATH
         Write-Host ""
         Write-Host "[Frontend] Instalando dependencias..." -ForegroundColor Cyan
-        if (Test-Path -LiteralPath "package-lock.json") {
+        if (Test-Path -LiteralPath (Join-Path $FRONTEND_PATH "package-lock.json")) {
             Write-Host "  npm ci (package-lock.json presente - reproducible)" -ForegroundColor Gray
-            npm ci
+            Show-Spinner -FilePath "npm.cmd" -Arguments @("ci") -WorkDir $FRONTEND_PATH `
+                -Message "Instalando dependencias del frontend..." -DoneMessage "Dependencias frontend instaladas"
         } else {
             Write-Host "  npm install (sin package-lock.json)" -ForegroundColor Gray
-            npm install
+            Show-Spinner -FilePath "npm.cmd" -Arguments @("install") -WorkDir $FRONTEND_PATH `
+                -Message "Instalando dependencias del frontend..." -DoneMessage "Dependencias frontend instaladas"
         }
-        if ($LASTEXITCODE -ne 0) {
-            Fail "Fallo al instalar dependencias del frontend."
-        }
-        Set-Location $ROOT
     } else {
         Write-Host ""
         Write-Host "[Frontend] node_modules ya existe. Se reutiliza." -ForegroundColor Gray
@@ -146,16 +218,14 @@ function Ensure-FrontendDeps {
 
 # Aplica migraciones Alembic (aplica migraciones nuevas, NO toca datos)
 function Update-Database {
-    Set-Location $BACKEND_PATH
-    Invoke-Checked "Backend: alembic upgrade head" { & $venvPython -m alembic upgrade head }
-    Set-Location $ROOT
+    Show-Spinner -FilePath $venvPython -Arguments @("-m","alembic","upgrade","head") `
+        -WorkDir $BACKEND_PATH -Message "Aplicando migraciones..." -DoneMessage "Migraciones aplicadas (head 011)"
 }
 
 # Ejecuta el seed de datos de prueba
 function Run-Seed {
-    Set-Location $BACKEND_PATH
-    Invoke-Checked "Backend: seed (scripts/seed.py)" { & $venvPython scripts/seed.py }
-    Set-Location $ROOT
+    Show-Spinner -FilePath $venvPython -Arguments @("scripts/seed.py") `
+        -WorkDir $BACKEND_PATH -Message "Sembrando datos de prueba..." -DoneMessage "Base de datos sembrada (15 productos, 4 roles)"
 }
 
 Write-Host "============================================================" -ForegroundColor Cyan
@@ -177,6 +247,50 @@ if ($LASTEXITCODE -ne 0) {
     Fail "Docker Desktop no esta corriendo. Inicialo y volve a ejecutar."
 }
 Write-Host "  OK: Docker disponible." -ForegroundColor Green
+
+# ------------------------------------------------------------
+# 1.5) Verificacion de prerequisitos del sistema
+# ------------------------------------------------------------
+Write-Host ""
+Write-Host "🔍 Verificando requisitos del sistema..." -ForegroundColor Cyan
+Write-Host "  ✅ Docker Desktop: disponible" -ForegroundColor Green
+
+# Python (o py -3, el launcher de Windows)
+$pyVersion = Get-ToolVersion "python" @("--version") 'Python\s+(\d+\.\d+\.\d+)'
+if (-not $pyVersion) { $pyVersion = Get-ToolVersion "py" @("-3","--version") 'Python\s+(\d+\.\d+\.\d+)' }
+if ($pyVersion) {
+    Write-Host "  ✅ Python: $pyVersion" -ForegroundColor Green
+} else {
+    Write-Host "  ❌ Python no encontrado. Instalalo desde https://www.python.org/downloads/ (marcá 'Add to PATH')" -ForegroundColor Red
+    exit 1
+}
+
+# Node.js
+$nodeVersion = Get-ToolVersion "node" @("--version") 'v?(\d+\.\d+\.\d+)'
+if ($nodeVersion) {
+    Write-Host "  ✅ Node.js: $nodeVersion" -ForegroundColor Green
+} else {
+    Write-Host "  ❌ Node.js no encontrado. Instalalo desde https://nodejs.org/" -ForegroundColor Red
+    exit 1
+}
+
+# npm (viene incluido con Node.js)
+$npmVersion = Get-ToolVersion "npm" @("--version") '(\d+\.\d+\.\d+)'
+if ($npmVersion) {
+    Write-Host "  ✅ npm: $npmVersion" -ForegroundColor Green
+} else {
+    Write-Host "  ❌ npm no encontrado. Reinstala Node.js desde https://nodejs.org/" -ForegroundColor Red
+    exit 1
+}
+
+# Git
+$gitVersion = Get-ToolVersion "git" @("--version") 'git version\s+(\d+\.\d+\.\d+)'
+if ($gitVersion) {
+    Write-Host "  ✅ Git: $gitVersion" -ForegroundColor Green
+} else {
+    Write-Host "  ❌ Git no encontrado. Instalalo desde https://git-scm.com/" -ForegroundColor Red
+    exit 1
+}
 
 # ------------------------------------------------------------
 # 2) AUTOCURACION al inicio: limpiar restos de sesiones anteriores
@@ -252,11 +366,8 @@ if (-not (Wait-Postgres)) {
 # 5) Backend: venv + dependencias (no rompe si recien clono el codigo)
 # ------------------------------------------------------------
 Ensure-Venv
-Set-Location $BACKEND_PATH
-Invoke-Checked "Backend: pip install -r requirements.txt" {
-    & $venvPython -m pip install -r requirements.txt
-}
-Set-Location $ROOT
+Show-Spinner -FilePath $venvPython -Arguments @("-m","pip","install","-r","requirements.txt") `
+    -WorkDir $BACKEND_PATH -Message "Instalando dependencias del backend..." -DoneMessage "Dependencias backend instaladas"
 
 # ------------------------------------------------------------
 # 6) Backend + Frontend: .env desde .env.example (si no existen)
@@ -298,18 +409,42 @@ Ensure-FrontendDeps
 
 # ------------------------------------------------------------
 # 10) Levantar el stack: backend (uvicorn) y frontend (vite)
-#     Cada uno en su propia ventana de cmd (visible, con logs)
+#     - Si Windows Terminal existe: 2 pestanas en la misma ventana
+#     - Si no: 2 ventanas cmd separadas (fallback)
 # ------------------------------------------------------------
+$wtPath = Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps\wt.exe"
+$useTabs = Test-Path -LiteralPath $wtPath
+
 Write-Host ""
-Write-Host "[Stack] Arrancando backend y frontend en ventanas separadas..." -ForegroundColor Cyan
+if ($useTabs) {
+    # wt parsea su linea con reglas CommandLineToArgvW: las comillas
+    # internas de un argumento se escriben duplicadas (""). Con
+    # --startingDirectory evitamos el "cd /d" y sus problemas de quoting.
+    Write-Host "[Stack] Arrancando backend y frontend en pestanas de Windows Terminal..." -ForegroundColor Cyan
+    $backendDirQ = $BACKEND_PATH.Replace('"', '""')
+    $frontendDirQ = $FRONTEND_PATH.Replace('"', '""')
 
-# Backend: uvicorn en una ventana cmd /k que queda abierta
-$backendCmd = "cd /d `"$BACKEND_PATH`" && .venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000"
-Start-Process cmd -ArgumentList "/k", "`"$backendCmd`""
+    # Pestana Backend: uvicorn en cmd /k que queda abierta
+    $wtArgsBackend = "-w 0 new-tab --title Backend --startingDirectory `"$backendDirQ`" cmd /k .venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000"
+    Start-Process $wtPath -ArgumentList $wtArgsBackend
+    Start-Sleep -Seconds 1
 
-# Frontend: vite en una ventana cmd /k que queda abierta
-$frontendCmd = "cd /d `"$FRONTEND_PATH`" && npm run dev"
-Start-Process cmd -ArgumentList "/k", "`"$frontendCmd`""
+    # Pestana Frontend: vite en cmd /k que queda abierta
+    $wtArgsFrontend = "-w 0 new-tab --title Frontend --startingDirectory `"$frontendDirQ`" cmd /k npm run dev"
+    Start-Process $wtPath -ArgumentList $wtArgsFrontend
+
+    Write-Host "  📌 Backend y Frontend abiertos en pestañas de la misma ventana." -ForegroundColor Green
+} else {
+    Write-Host "[Stack] Arrancando backend y frontend en ventanas separadas..." -ForegroundColor Cyan
+
+    # Backend: uvicorn en una ventana cmd /k que queda abierta
+    $backendCmd = "cd /d `"$BACKEND_PATH`" && .venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000"
+    Start-Process cmd -ArgumentList "/k", "`"$backendCmd`""
+
+    # Frontend: vite en una ventana cmd /k que queda abierta
+    $frontendCmd = "cd /d `"$FRONTEND_PATH`" && npm run dev"
+    Start-Process cmd -ArgumentList "/k", "`"$frontendCmd`""
+}
 
 # ------------------------------------------------------------
 # 11) Verificar que backend y frontend respondan
@@ -348,6 +483,10 @@ Write-Host "============================================================" -Foreg
 Write-Host "🚀 Aplicacion lista!" -ForegroundColor Green
 Write-Host "   Frontend: http://localhost:5173" -ForegroundColor Green
 Write-Host "   Backend docs: http://localhost:8000/docs" -ForegroundColor Green
+Write-Host ""
+Write-Host "   Credenciales de prueba:" -ForegroundColor Yellow
+Write-Host "     Admin:    admin@foodstore.com / admin123456" -ForegroundColor Yellow
+Write-Host "     Cliente:  cliente@foodstore.com / cliente123456" -ForegroundColor Yellow
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "📌 MANTENGA ESTA VENTANA ABIERTA mientras usa la aplicacion." -ForegroundColor Yellow
