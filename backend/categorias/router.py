@@ -33,7 +33,7 @@ router = APIRouter(prefix="/categorias", tags=["Categorias"])
 
 
 @router.get(
-    "/",
+    "",
     response_model=list[CategoriaResponse],
     summary="List categories (flat)",
     description=(
@@ -112,7 +112,7 @@ async def get_subtree(
 
 
 @router.post(
-    "/",
+    "",
     response_model=CategoriaResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a category",

@@ -54,7 +54,7 @@ def _usuario_to_response(usuario: Usuario) -> AdminUsuarioResponse:
 
 
 @router.get(
-    "/",
+    "",
     response_model=AdminListUsuariosResponse,
     summary="List users (admin)",
     description="Paginated list of users with optional ILIKE search and role filter.",

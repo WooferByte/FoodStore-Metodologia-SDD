@@ -17,6 +17,9 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Expand alembic_version column to allow revision IDs longer than 32 chars
+    op.execute("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(255)")
+
     # Create roles table
     op.create_table(
         'roles',
