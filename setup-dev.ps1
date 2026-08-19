@@ -344,7 +344,14 @@ if ($portOwner) {
     Write-Host "   $ownerContainer" -ForegroundColor Yellow
     $resp = Read-Host "   ¿Desea detenerlo para liberar el 5433? [S/N] (default: N)"
     if ($resp -match "^(s|y|S|Y)$") {
-        $name = ($ownerContainer -split "\s+")[0]
+        # Extrae el primer token no-espacio (nombre del contenedor) con regex:
+        # mas robusto que -split (evita tokens vacios por espacios/TAB iniciales).
+        $m = [regex]::Match($ownerContainer, '^\S+')
+        if (-not $m.Success) {
+            Write-Host "❌ No se pudo identificar el contenedor en: $ownerContainer" -ForegroundColor Red
+            exit 1
+        }
+        $name = $m.Value
         Invoke-DockerQuiet @("stop", $name) | Out-Null
         Write-Host "  Contenedor $name detenido. Puerto 5433 liberado." -ForegroundColor Green
     } else {
