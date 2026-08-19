@@ -56,6 +56,22 @@ function Get-ToolVersion {
     return $null
 }
 
+# Ejecuta docker normalizando stderr a texto. Evita el NativeCommandError de PS 5.1
+# que con $ErrorActionPreference = "Stop" mata el script cuando docker escribe
+# su progreso ("Container ... Stopping") en stderr.
+function Invoke-DockerCapture([string[]]$DockerArgs) {
+    $lines = & docker @DockerArgs 2>&1 | ForEach-Object {
+        if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.Exception.Message } else { $_ }
+    }
+    return ($lines -join "`n")
+}
+
+# Variante silenciosa: ejecuta docker descartando el output normalizado.
+function Invoke-DockerQuiet([string[]]$DockerArgs) {
+    Invoke-DockerCapture @DockerArgs | Out-Null
+    return $LASTEXITCODE
+}
+
 # Script que corre en un runspace en background: ejecuta el comando nativo,
 # captura stdout+stderr y devuelve el exit code REAL de la aplicacion.
 $ShowSpinnerScript = @'
@@ -122,7 +138,7 @@ function Wait-Postgres {
         $ready = $false
         $result = ""
         try {
-            $result = docker compose exec -T postgres pg_isready -U postgres -d foodstore_db 2>$null
+            $result = Invoke-DockerCapture @("compose", "exec", "-T", "postgres", "pg_isready", "-U", "postgres", "-d", "foodstore_db")
             if ($LASTEXITCODE -eq 0 -and $result -match "accepting connections") {
                 $ready = $true
             }
@@ -147,7 +163,7 @@ function Wait-Postgres {
 # docker compose ps -a incluye contenedores detenidos: un contenedor con datos
 # que esta parado NO debe tratarse como clon fresco (se perderia la BD).
 function Test-ContainerExists {
-    $output = docker compose ps -a -q postgres 2>$null
+    $output = Invoke-DockerCapture @("compose", "ps", "-a", "-q", "postgres")
     return ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($output))
 }
 
@@ -310,7 +326,7 @@ Get-CimInstance Win32_Process | Where-Object {
 }
 
 Write-Host "[Autocuracion] Deteniendo postgres del proyecto si quedo corriendo..." -ForegroundColor Cyan
-docker compose stop postgres 2>$null
+Invoke-DockerQuiet @("compose", "stop", "postgres") | Out-Null
 
 Write-Host "[Autocuracion] Verificando que el puerto 5433 este libre..." -ForegroundColor Cyan
 $portOwner = Get-NetTCPConnection -LocalPort 5433 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -326,7 +342,7 @@ if ($portOwner) {
     $resp = Read-Host "   ¿Desea detenerlo para liberar el 5433? [S/N] (default: N)"
     if ($resp -match "^(s|y|S|Y)$") {
         $name = ($ownerContainer -split "\s+")[0]
-        docker stop $name
+        Invoke-DockerQuiet @("stop", $name) | Out-Null
         Write-Host "  Contenedor $name detenido. Puerto 5433 liberado." -ForegroundColor Green
     } else {
         Write-Host "❌ No se puede continuar: el puerto 5433 esta ocupado." -ForegroundColor Red
@@ -501,5 +517,5 @@ Get-CimInstance Win32_Process | Where-Object {
     ($_.Name -eq "node.exe" -and $_.CommandLine -match "vite")
 } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 Write-Host "Deteniendo PostgreSQL..." -ForegroundColor Yellow
-docker compose stop postgres
+Invoke-DockerQuiet @("compose", "stop", "postgres") | Out-Null
 Write-Host "✅ Todo detenido. Puerto 5433 liberado. Volvé a ejecutar setup-dev.bat para levantar de nuevo." -ForegroundColor Green
