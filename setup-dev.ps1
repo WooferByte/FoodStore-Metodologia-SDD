@@ -336,7 +336,10 @@ if (-not $portOwner) {
     if ($netstatLine) { $portOwner = $netstatLine }
 }
 if ($portOwner) {
-    $ownerContainer = docker ps --format "{{.Names}}`t{{.Ports}}" | Select-String "5433" | Select-Object -First 1
+    # IMPORTANTE: Select-String devuelve MatchInfo (no string). Con .Line obtenemos
+    # el string puro; .Trim() evita que un espacio/TAB inicial genere un token vacio
+    # al hacer -split (que rompia el docker stop con "requires at least 1 argument").
+    $ownerContainer = (docker ps --format "{{.Names}}`t{{.Ports}}" | Select-String "5433" | Select-Object -First 1).Line.Trim()
     Write-Host "  ⚠️  El puerto 5433 esta ocupado por otro contenedor:" -ForegroundColor Yellow
     Write-Host "   $ownerContainer" -ForegroundColor Yellow
     $resp = Read-Host "   ¿Desea detenerlo para liberar el 5433? [S/N] (default: N)"
