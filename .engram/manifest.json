@@ -152,6 +152,14 @@
       "sessions": 0,
       "memories": 4,
       "prompts": 0
+    },
+    {
+      "id": "b18ee808",
+      "created_by": "Woofe",
+      "created_at": "2026-08-20T15:31:14Z",
+      "sessions": 0,
+      "memories": 3,
+      "prompts": 0
     }
   ]
 }
