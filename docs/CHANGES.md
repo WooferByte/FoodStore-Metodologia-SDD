@@ -1,9 +1,9 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-08-18 (cierre documental: 4 archives huérfanos incorporados al EPIC 13 + PoC `test-opsx-workflow` documentada — último change de producto: frontend-system-configuration-ui, BLOQUE 8 COMPLETO ✅)
+> **Última actualización**: 2026-08-25 (`mercadopago-live-integration` ARCHIVADO — compra real verificada por UI con webhook ngrok; 2 bugs corregidos)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
-> **Versión mapa**: 5.13 — Estado real sincronizado
+> **Versión mapa**: 5.15 — Estado real sincronizado
 
 ---
 
@@ -565,6 +565,28 @@ Hook `usePaymentStatusPolling(pedidoId)` — polling cada 30s a `GET /api/v1/pag
 
 ---
 
+### ✅ `mercadopago-live-integration` *(Hecho — archivado 2026-08-25)*
+
+Pase live de la integración MercadoPago existente: la integración ya estaba implementada (crear-preferencia, webhook HMAC-SHA256, idempotencia UNIQUE, polling) pero con tokens placeholder. Este change la habilita con **credenciales de prueba reales** (obtenidas vía MercadoPago MCP Server + OAuth, cargadas en `.env` locales gitignored) y corrige los 4 gaps de configuración detectados en auditoría:
+1. `notification_url` hardcodeada a localhost → `MP_NOTIFICATION_URL` configurable (Settings).
+2. `back_urls` hardcodeados a localhost y apuntando a rutas inexistentes → `MP_FRONTEND_URL` configurable + apuntan a `/checkout` (ruta única).
+3. **D-1**: retorno de MP reconciliado — `CheckoutPage` lee params nativos de MP (`status` + `external_reference`) con fallback legacy (`payment`+`pedido_id`); spec nueva `payment-return-handling`.
+4. `auto_return: "approved"` solo cuando `MP_FRONTEND_URL` no es localhost (D-3).
+
+**Verificación E2E REAL (2026-08-25, via ngrok tunnel + chrome-devtools UI)**: compra completa simulada por UI real — login cliente → Pizza Margherita $2.800 → checkout → MercadoPago → tarjeta de prueba `5031 7557 3453 0604` (APRO/12345678) → pago aprobado (Operación #1350821413) → webhook real por el túnel HTTP 200 → `pago_webhook_log` id=9 → `pagos` id=19 `approved` → `pedidos` id=31 **CONFIRMADO** con `forma_pago_id=2 (MERCADOPAGO)` → UI "Mis Pedidos" muestra Confirmado con timeline Sistema. Flujo end-to-end ✅.
+
+**Bugfixes descubiertos por el E2E y corregidos (TDD)**:
+- 🔴 CRÍTICO: `WebhookMPPayload.id: Optional[Union[str,int]]` — MP envía id del evento como entero → Pydantic v2 no coerce → 422 en todo webhook real. Corregido. 3 tests nuevos (test_pagos.py 23/23).
+- 🟡 MENOR: `CheckoutPage` hardcodeaba `forma_pago_id: 1` (EFECTIVO) → ahora lee del store (`mercadopago→2, cash→1`). Test nuevo (23 CheckoutPage tests).
+
+**Tests**: backend `test_pagos.py` 23/23 verde; frontend 686 vitest, tsc 0 errores, build OK. Suite backend completa: 456 passed / 41 failed pre-existentes (ajenos al change — deuda técnica pendiente).
+
+**Skills**: `python-fastapi-ddd-skill`, `supabase-postgres-best-practices`, `api-design`, `web-payments`, `tailwind-design-system`, `ui-design-system`, `zustand-state-management`, `frontend-state-management`, `vercel-react-best-practices`, `testing-e2e-playwright`, `post-change-verification`
+**Dependencias**: `payments-mercadopago-integration-backend`, `frontend-payment-checkout-ui`, `frontend-payment-status-polling`
+**Evidencia**: `openspec/changes/archive/2026-08-25-mercadopago-live-integration/`
+
+---
+
 ## EPIC 12 — Panel de Administración
 
 ### ✅ `backend-admin-users-endpoints` *(Hecho — archivado 2026-05-18)*
@@ -853,6 +875,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.15 | 2026-08-25 | `mercadopago-live-integration` ARCHIVADO. Compra real verificada por UI (chrome-devtools): pedido #31 CONFIRMADO vía webhook MP real (Operación #1350821413). 2 bugs corregidos. Deuda técnica: 41 tests backend pre-existentes fallando. |
 | 5.13 | 2026-08-18 | Cierre documental: 4 archives huérfanos incorporados al EPIC 13 (fix-build-critical, post-merge-critical-fixes, post-merge-medium-fixes, refactor-fsd-performance — todos ✅ verificados en código). `test-opsx-workflow` documentado como PoC de validación del flujo OPSX (no change de producto). |
 | 5.12 | 2026-05-26 | frontend-system-configuration-ui archivado. Feature configuracion/admin con tabla responsive, badges de tipo, modal edición, toasts. 658 vitest. BLOQUE 8 COMPLETO ✅ PRÓXIMO: BLOQUE 9 — Entrega Final. |
 | 5.11 | 2026-05-26 | system-configuration-backend archivado. Módulo configuracion/ completo (model, repository, service, router, schemas). Migración 011. Seed 5 configs. 8 tests. PRÓXIMO: frontend-system-configuration-ui (BLOQUE 8 último change). |
