@@ -1,9 +1,9 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-08-25 (`mercadopago-live-integration` ARCHIVADO — compra real verificada por UI con webhook ngrok; 2 bugs corregidos)
+> **Última actualización**: 2026-08-25 (`shipping-fee-consistency` ARCHIVADO — envío computado en backend + drawer/checkout corregidos)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
-> **Versión mapa**: 5.15 — Estado real sincronizado
+> **Versión mapa**: 5.16 — Estado real sincronizado
 
 ---
 
@@ -464,6 +464,21 @@ Archivado: `2026-05-15-checkout-pre-validation`
 
 ## EPIC 10 — Pedidos
 
+### ✅ `shipping-fee-consistency` *(Hecho — archivado 2026-08-25)*
+**Evidencia**: `openspec/changes/archive/2026-08-25-shipping-fee-consistency/`
+
+Fix de consistencia del costo de envío. La regla existía SOLO en `OrderSummary.tsx` (carrito completo) — CartDrawer, CheckoutPage y el backend la ignoraban: se cobraba subtotal sin envío (2800 en vez de 3300). Correcciones:
+1. **Backend fuente de verdad**: `create_pedido` lee `envio_gratis_umbral` (3000) + nueva config `envio_costo` (500) vía `_get_config_int`, computa `envio = 0 if subtotal >= umbral else costo`, `total = subtotal + envio`. Columna `Pedido.envio` (NUMERIC default 0) + migración Alembic 012 (históricos = 0 correcto). `PedidoResponse.envio` expuesto. El cliente NO puede overridear total/envio (PedidoCreate sin esos campos).
+2. **Frontend fuente única**: hook `useCartTotals` en `features/cart/hooks/` (subtotal Zustand + umbral/costo TanStack Query vía `useSystemConfig`) → usado por OrderSummary, CartDrawer (footer + CTA) y CheckoutPage (columna resumen). CheckoutPage invalida system-config al montar (evita cache stale 5 min).
+3. **MP beneficia**: preferencia cobra `float(pedido.total)` → ahora incluye envío.
+
+**Verificación**: 6 tests E2E shipping (cart/drawer/checkout/payload) passing; smoke real BD: subtotal 2800 → envio 500 → total 3300; pedidos históricos envio=0. Backend 110 passed (touched), 463 total (41 pre-existentes ajenos). Frontend **697 vitest** (686 + 11), tsc 0 errores, build OK.
+
+**Skills**: `python-fastapi-ddd-skill`, `supabase-postgres-best-practices`, `api-design`, `tailwind-design-system`, `ui-design-system`, `zustand-state-management`, `frontend-state-management`, `vercel-react-best-practices`, `testing-e2e-playwright`, `post-change-verification`
+**Dependencias**: `orders-fsm-backend`, `orders-api-endpoints`, `checkout-pre-validation`, `system-configuration-backend`, `frontend-shopping-cart-ui`, `frontend-payment-checkout-ui`
+
+---
+
 ### ✅ `orders-fsm-backend`
 Archivado: `2026-05-15-orders-fsm-backend`
 **Evidencia**: `openspec/changes/archive/2026-05-15-orders-fsm-backend/`
@@ -875,6 +890,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.16 | 2026-08-25 | `shipping-fee-consistency` ARCHIVADO. Envío computado en backend (envio_gratis_umbral + envio_costo), columna Pedido.envio (migración 012), hook useCartTotals compartido, CartDrawer + CheckoutPage corregidos. 697 vitest, 6 E2E shipping, smoke real 2800→3300. |
 | 5.15 | 2026-08-25 | `mercadopago-live-integration` ARCHIVADO. Compra real verificada por UI (chrome-devtools): pedido #31 CONFIRMADO vía webhook MP real (Operación #1350821413). 2 bugs corregidos. Deuda técnica: 41 tests backend pre-existentes fallando. |
 | 5.13 | 2026-08-18 | Cierre documental: 4 archives huérfanos incorporados al EPIC 13 (fix-build-critical, post-merge-critical-fixes, post-merge-medium-fixes, refactor-fsd-performance — todos ✅ verificados en código). `test-opsx-workflow` documentado como PoC de validación del flujo OPSX (no change de producto). |
 | 5.12 | 2026-05-26 | frontend-system-configuration-ui archivado. Feature configuracion/admin con tabla responsive, badges de tipo, modal edición, toasts. 658 vitest. BLOQUE 8 COMPLETO ✅ PRÓXIMO: BLOQUE 9 — Entrega Final. |

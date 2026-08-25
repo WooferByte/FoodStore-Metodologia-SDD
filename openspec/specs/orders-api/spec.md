@@ -1,11 +1,27 @@
-## ADDED Requirements
+# Specification: Orders API
+
+Pedidos REST API para Food Store: creación con snapshots y decremento atómico de stock, listado paginado con aislamiento por usuario, detalle con líneas, transiciones de estado FSM, cancelación con soft delete, autenticación obligatoria y errores RFC 7807.
+
+## Purpose
+
+El sistema SHALL exponer una API REST de pedidos (`/api/v1/pedidos`) que permita a CLIENT crear y listar sus pedidos, a CLIENT y ADMIN ver detalles, a ADMIN avanzar el estado FSM, y a CLIENT/ADMIN cancelar pedidos con soft delete. Todas las operaciones SHALL requerir JWT válido y los errores de negocio SHALL seguir RFC 7807.
+
+## Requirements
 
 ### Requirement: CLIENT puede crear un pedido
-El sistema SHALL permitir a un usuario autenticado con rol CLIENT crear un nuevo pedido a través de `POST /api/v1/pedidos`. La creación decrementa stock atómicamente, registra snapshots de precio y dirección, y crea una entrada de historial FSM.
+El sistema SHALL permitir a un usuario autenticado con rol CLIENT crear un nuevo pedido a través de `POST /api/v1/pedidos`. La creación decrementa stock atómicamente, registra snapshots de precio y dirección, computa el envío desde la configuración del sistema (`envio_gratis_umbral` y `envio_costo`), persiste `envio` y `total = subtotal + envio`, y crea una entrada de historial FSM. El request SHALL NO aceptar `total` ni `envio` (el backend los computa; si el cliente los envía, son ignorados).
 
 #### Scenario: Creación exitosa de pedido
 - **WHEN** CLIENT envía `POST /api/v1/pedidos` con `direccion_entrega_id`, `forma_pago_id`, `items` válidos
-- **THEN** el sistema retorna HTTP 201 con el pedido creado (`PedidoResponse`) y header `Location: /api/v1/pedidos/{id}`
+- **THEN** el sistema retorna HTTP 201 con el pedido creado (`PedidoResponse` incluyendo `envio` y `total` con envío) y header `Location: /api/v1/pedidos/{id}`
+
+#### Scenario: Envío cobrado cuando el subtotal es menor al umbral
+- **WHEN** CLIENT crea un pedido cuyo subtotal ($2.800) es menor a `envio_gratis_umbral` ($3.000) y `envio_costo` es $500
+- **THEN** el pedido se persiste con `envio=500` y `total=3300`
+
+#### Scenario: Envío gratis cuando el subtotal alcanza el umbral
+- **WHEN** CLIENT crea un pedido cuyo subtotal ($3.000) es mayor o igual a `envio_gratis_umbral` ($3.000)
+- **THEN** el pedido se persiste con `envio=0` y `total=subtotal`
 
 #### Scenario: Rate limit excedido
 - **WHEN** CLIENT envía más de 10 requests a `POST /api/v1/pedidos` en una hora
@@ -30,6 +46,7 @@ El sistema SHALL permitir a un usuario autenticado con rol CLIENT crear un nuevo
 ---
 
 ### Requirement: CLIENT puede listar sus pedidos con paginación
+
 El sistema SHALL permitir a un usuario con rol CLIENT listar sus propios pedidos vía `GET /api/v1/pedidos`. La respuesta DEBE incluir `items`, `total`, `limit`, `offset`. Los pedidos con `eliminado_en` no NULL NO deben aparecer.
 
 #### Scenario: Listado paginado por defecto
@@ -48,9 +65,8 @@ El sistema SHALL permitir a un usuario con rol CLIENT listar sus propios pedidos
 - **WHEN** un pedido tiene `eliminado_en` no NULL
 - **THEN** no aparece en el resultado de `GET /api/v1/pedidos`
 
----
-
 ### Requirement: CLIENT o ADMIN puede ver el detalle de un pedido
+
 El sistema SHALL permitir ver el detalle completo de un pedido (con detalles de línea) vía `GET /api/v1/pedidos/{id}`. Un CLIENT solo puede ver sus propios pedidos; un ADMIN puede ver cualquiera.
 
 #### Scenario: CLIENT accede a su propio pedido
@@ -69,9 +85,8 @@ El sistema SHALL permitir ver el detalle completo de un pedido (con detalles de 
 - **WHEN** se solicita un `id` que no existe o tiene `eliminado_en` no NULL
 - **THEN** el sistema retorna HTTP 404 con RFC 7807
 
----
-
 ### Requirement: ADMIN puede avanzar el estado FSM de un pedido
+
 El sistema SHALL permitir a un ADMIN hacer transiciones de estado vía `PATCH /api/v1/pedidos/{id}/estado`. La transición DEBE seguir la matriz FSM definida en `service.VALID_TRANSITIONS`. La transición crea una entrada de auditoría inmutable.
 
 #### Scenario: Transición válida
@@ -90,9 +105,8 @@ El sistema SHALL permitir a un ADMIN hacer transiciones de estado vía `PATCH /a
 - **WHEN** ADMIN intenta avanzar un pedido en estado 5 (ENTREGADO) o 6 (CANCELADO)
 - **THEN** el sistema retorna HTTP 409 indicando que no hay transiciones posibles desde el estado actual
 
----
-
 ### Requirement: CLIENT o ADMIN puede cancelar y eliminar (soft delete) un pedido
+
 El sistema SHALL permitir cancelar un pedido vía `DELETE /api/v1/pedidos/{id}`. La cancelación revierte el stock, registra el historial FSM, y marca el pedido con `eliminado_en`. Un CLIENT solo puede cancelar pedidos en estado PENDIENTE. ADMIN puede cancelar desde cualquier estado cancelable. El pedido NO debe ser borrado físicamente de la BD (nunca hard delete).
 
 #### Scenario: CLIENT cancela su pedido en estado PENDIENTE
@@ -115,9 +129,8 @@ El sistema SHALL permitir cancelar un pedido vía `DELETE /api/v1/pedidos/{id}`.
 - **WHEN** se intenta acceder o cancelar un pedido con `eliminado_en` no NULL
 - **THEN** el sistema retorna HTTP 404 (el pedido no existe desde la perspectiva del cliente)
 
----
-
 ### Requirement: Todos los endpoints de pedidos requieren autenticación y usan RFC 7807
+
 El sistema SHALL rechazar con HTTP 401 toda request sin JWT válido a cualquier endpoint de `/api/v1/pedidos`. Todos los errores de negocio DEBEN seguir el formato RFC 7807 con campos `type`, `title`, `status`, `detail`, `instance`.
 
 #### Scenario: Request sin Authorization header
@@ -131,3 +144,18 @@ El sistema SHALL rechazar con HTTP 401 toda request sin JWT válido a cualquier 
 #### Scenario: Error de negocio usa RFC 7807
 - **WHEN** el sistema genera cualquier error de negocio (409, 403, 422, 404)
 - **THEN** el body de respuesta contiene `{ type, title, status, detail, instance }` con valores no vacíos
+
+### Requirement: Pedido expone el envío persistido en sus respuestas
+El sistema SHALL incluir el campo `envio` (Decimal) en `PedidoResponse`, presente en creación (`POST /api/v1/pedidos`), listado (`GET /api/v1/pedidos`) y detalle (`GET /api/v1/pedidos/{id}`). Los pedidos históricos creados antes de esta regla SHALL tener `envio = 0`.
+
+#### Scenario: Creación devuelve el envío
+- **WHEN** CLIENT crea un pedido con envío cobrado ($500)
+- **THEN** el `PedidoResponse` de la respuesta incluye `envio: 500` y `total` incluyendo el envío
+
+#### Scenario: Detalle y listado exponen el envío
+- **WHEN** CLIENT o ADMIN consulta `GET /api/v1/pedidos/{id}` o `GET /api/v1/pedidos`
+- **THEN** cada pedido devuelto incluye el campo `envio` con el valor persistido
+
+#### Scenario: Pedido histórico con envío en cero
+- **WHEN** se consulta un pedido creado antes de que existiera el cálculo de envío
+- **THEN** el campo `envio` es `0`
