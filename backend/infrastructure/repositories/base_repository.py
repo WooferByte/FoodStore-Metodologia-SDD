@@ -6,11 +6,12 @@ Works with all SQLModel entities from CHANGE 3.
 """
 
 from typing import Generic, Optional, Type, TypeVar, Any
-from datetime import datetime
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import SQLModel
+
+from core.time import utc_now
 
 T = TypeVar("T", bound=SQLModel)
 
@@ -135,7 +136,7 @@ class BaseRepository(Generic[T]):
         """
         # Set actualizado_en if field exists
         if hasattr(entity, "actualizado_en"):
-            entity.actualizado_en = datetime.utcnow()
+            entity.actualizado_en = utc_now()
         
         self.session.add(entity)
         await self.session.flush()
@@ -158,7 +159,7 @@ class BaseRepository(Generic[T]):
         
         entity = await self.get_by_id(id)
         if entity:
-            entity.eliminado_en = datetime.utcnow()
+            entity.eliminado_en = utc_now()
             self.session.add(entity)
             await self.session.flush()
 

@@ -6,10 +6,11 @@ Models use SQLModel which combines SQLAlchemy ORM capabilities with Pydantic val
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional, List
-from sqlalchemy import Column, Integer as SaInteger
+from sqlalchemy import Column, DateTime as SaDateTime, Integer as SaInteger
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlmodel import SQLModel, Field, Relationship
 from passlib.context import CryptContext
+from core.time import utc_now
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -38,8 +39,8 @@ class Configuracion(SQLModel, table=True):
     valor: str = Field(max_length=1000)
     descripcion: Optional[str] = Field(default=None, max_length=500)
     actualizado_por: int = Field(foreign_key="usuarios.id")
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
-    actualizado_en: datetime = Field(default_factory=datetime.utcnow)
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
+    actualizado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
 
 
 class UsuarioRol(SQLModel, table=True):
@@ -71,7 +72,7 @@ class Rol(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     nombre: str = Field(unique=True, index=True, max_length=50)
     descripcion: Optional[str] = Field(default=None, max_length=500)
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
 
     # Relationships
     usuarios: List["Usuario"] = Relationship(back_populates="roles", link_model=UsuarioRol)
@@ -95,7 +96,7 @@ class EstadoPedido(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     nombre: str = Field(unique=True, index=True, max_length=50)
     descripcion: Optional[str] = Field(default=None, max_length=500)
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
 
 
 class FormaPago(SQLModel, table=True):
@@ -114,7 +115,7 @@ class FormaPago(SQLModel, table=True):
     nombre: str = Field(unique=True, index=True, max_length=50)
     descripcion: Optional[str] = Field(default=None, max_length=500)
     activo: bool = Field(default=True)
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
 
 
 class Usuario(SQLModel, table=True):
@@ -139,10 +140,10 @@ class Usuario(SQLModel, table=True):
     apellido: Optional[str] = Field(default=None, max_length=100)
     activo: bool = Field(default=True)
     telefono: Optional[str] = Field(default=None, max_length=20)
-    ultimo_login: Optional[datetime] = None
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
-    actualizado_en: datetime = Field(default_factory=datetime.utcnow)
-    eliminado_en: Optional[datetime] = None
+    ultimo_login: Optional[datetime] = Field(default=None, sa_type=SaDateTime(timezone=True))
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
+    actualizado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
+    eliminado_en: Optional[datetime] = Field(default=None, sa_type=SaDateTime(timezone=True))
 
     # Relationships — N:M via UsuarioRol pivot table
     roles: List["Rol"] = Relationship(back_populates="usuarios", link_model=UsuarioRol)
@@ -169,9 +170,9 @@ class RefreshToken(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     usuario_id: int = Field(foreign_key="usuarios.id")
     token: str = Field(unique=True, index=True)
-    expires_at: datetime
-    revoked_at: Optional[datetime] = None
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: datetime = Field(sa_type=SaDateTime(timezone=True))
+    revoked_at: Optional[datetime] = Field(default=None, sa_type=SaDateTime(timezone=True))
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
 
 
 class DireccionEntrega(SQLModel, table=True):
@@ -193,9 +194,9 @@ class DireccionEntrega(SQLModel, table=True):
     codigo_postal: str
     referencia: Optional[str] = None
     es_predeterminada: bool = False
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
-    actualizado_en: datetime = Field(default_factory=datetime.utcnow)
-    eliminado_en: Optional[datetime] = None
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
+    actualizado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
+    eliminado_en: Optional[datetime] = Field(default=None, sa_type=SaDateTime(timezone=True))
 
 
 class ProductoCategoria(SQLModel, table=True):
@@ -238,9 +239,9 @@ class Categoria(SQLModel, table=True):
     nombre: str = Field(unique=True, index=True, max_length=255)
     descripcion: Optional[str] = None
     padre_id: Optional[int] = Field(default=None, foreign_key="categorias.id")
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
-    actualizado_en: datetime = Field(default_factory=datetime.utcnow)
-    eliminado_en: Optional[datetime] = None
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
+    actualizado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
+    eliminado_en: Optional[datetime] = Field(default=None, sa_type=SaDateTime(timezone=True))
 
     # Relationships
     productos: List["Producto"] = Relationship(back_populates="categorias", link_model=ProductoCategoria)
@@ -262,9 +263,9 @@ class Producto(SQLModel, table=True):
     stock_cantidad: int = 0
     disponible: bool = True
     imagen_url: Optional[str] = None
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
-    actualizado_en: datetime = Field(default_factory=datetime.utcnow)
-    eliminado_en: Optional[datetime] = None
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
+    actualizado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
+    eliminado_en: Optional[datetime] = Field(default=None, sa_type=SaDateTime(timezone=True))
 
     # Relationships — N:M via ProductoCategoria and ProductoIngrediente pivot tables
     categorias: List["Categoria"] = Relationship(back_populates="productos", link_model=ProductoCategoria)
@@ -283,8 +284,8 @@ class Ingrediente(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     nombre: str = Field(unique=True, index=True, max_length=255)
     es_alergeno: bool = False
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
-    eliminado_en: Optional[datetime] = None
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
+    eliminado_en: Optional[datetime] = Field(default=None, sa_type=SaDateTime(timezone=True))
 
     # Relationships
     productos: List["Producto"] = Relationship(back_populates="ingredientes", link_model=ProductoIngrediente)
@@ -308,9 +309,9 @@ class Pedido(SQLModel, table=True):
     total: Decimal = Field(decimal_places=2, max_digits=10)
     observacion: Optional[str] = None
     direccion_snapshot: Optional[str] = None  # JSON con datos de dirección al momento del pedido
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
-    actualizado_en: datetime = Field(default_factory=datetime.utcnow)
-    eliminado_en: Optional[datetime] = None
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
+    actualizado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
+    eliminado_en: Optional[datetime] = Field(default=None, sa_type=SaDateTime(timezone=True))
 
 
 class DetallePedido(SQLModel, table=True):
@@ -332,7 +333,7 @@ class DetallePedido(SQLModel, table=True):
         default=None,
         sa_column=Column(ARRAY(SaInteger), nullable=True),
     )  # Native PostgreSQL INTEGER[] (RN-PE07)
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
 
 
 class HistorialEstadoPedido(SQLModel, table=True):
@@ -350,7 +351,7 @@ class HistorialEstadoPedido(SQLModel, table=True):
     estado_nuevo_id: int = Field(foreign_key="estados_pedido.id")
     observacion: Optional[str] = None
     usuario_responsable_id: Optional[int] = Field(default=None, foreign_key="usuarios.id")
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
 
 
 class Pago(SQLModel, table=True):
@@ -373,6 +374,6 @@ class Pago(SQLModel, table=True):
     external_reference: str  # UUID
     idempotency_key: str = Field(unique=True)  # UUID
     gateway_response: Optional[str] = None  # JSON
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
-    actualizado_en: datetime = Field(default_factory=datetime.utcnow)
-    eliminado_en: Optional[datetime] = None
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
+    actualizado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))
+    eliminado_en: Optional[datetime] = Field(default=None, sa_type=SaDateTime(timezone=True))

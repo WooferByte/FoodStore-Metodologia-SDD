@@ -7,13 +7,13 @@ Extends BaseRepository[DireccionEntrega] with methods that enforce:
   - Bulk unset of predeterminada flag (RN-DI02)
   - Latest-active lookup for reassignment after soft-delete
 """
-from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import func, select, update
 
-from infrastructure.repositories.base_repository import BaseRepository
 from core.models import DireccionEntrega
+from core.time import utc_now
+from infrastructure.repositories.base_repository import BaseRepository
 
 
 class DireccionRepository(BaseRepository[DireccionEntrega]):
@@ -79,7 +79,7 @@ class DireccionRepository(BaseRepository[DireccionEntrega]):
                 DireccionEntrega.es_predeterminada.is_(True),
                 DireccionEntrega.eliminado_en.is_(None),
             )
-            .values(es_predeterminada=False, actualizado_en=datetime.utcnow())
+            .values(es_predeterminada=False, actualizado_en=utc_now())
         )
         await self.session.execute(stmt)
 

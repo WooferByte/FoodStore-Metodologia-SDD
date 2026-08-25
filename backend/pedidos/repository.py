@@ -14,13 +14,13 @@ HistorialEstadoPedidoRepository (append-only):
   - append(): INSERT only — no update(), no delete()
   - list_by_pedido(): SELECT ordered by creado_en ASC for audit trail
 """
-from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import select
 
 from core.models import DetallePedido, HistorialEstadoPedido, Pedido
+from core.time import utc_now
 from infrastructure.repositories.base_repository import BaseRepository
 
 
@@ -262,7 +262,7 @@ class PedidoRepository(BaseRepository[Pedido]):
             return None
 
         pedido.estado_pedido_id = nuevo_estado_pedido_id
-        pedido.actualizado_en = datetime.utcnow()
+        pedido.actualizado_en = utc_now()
         self.session.add(pedido)
         await self.session.flush()
         return pedido

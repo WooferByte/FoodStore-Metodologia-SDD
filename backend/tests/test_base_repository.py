@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import SQLModel, Field
 
 # Import BaseRepository directly from module, not from __init__
+from core.time import utc_now
 from infrastructure.repositories.base_repository import BaseRepository
 
 
@@ -22,8 +23,8 @@ class MockEntity(SQLModel, table=False):  # table=False for testing
     """Mock entity for repository tests."""
     id: int = Field(primary_key=True)
     name: str
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
-    actualizado_en: datetime = Field(default_factory=datetime.utcnow)
+    creado_en: datetime = Field(default_factory=utc_now)
+    actualizado_en: datetime = Field(default_factory=utc_now)
     eliminado_en: datetime | None = None
 
 
@@ -113,14 +114,18 @@ class TestBaseRepository:
         """Test updating an entity."""
         entity = MockEntity(id=1, name="Updated")
         old_time = entity.actualizado_en
-        
+
+        # default_factory must produce aware UTC datetimes
+        assert old_time.tzinfo is not None
+
         mock_session.flush = AsyncMock()
 
         result = await repo.update(entity)
 
         assert result.id == 1
-        # actualizado_en should be updated to current time
+        # actualizado_en should be updated to current time (aware UTC)
         assert result.actualizado_en >= old_time
+        assert result.actualizado_en.tzinfo is not None
         mock_session.add.assert_called_once_with(entity)
 
     @pytest.mark.asyncio

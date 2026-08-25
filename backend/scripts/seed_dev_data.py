@@ -12,7 +12,7 @@ El script es idempotente: verifica existencia antes de insertar.
 import asyncio
 import sys
 import uuid
-from datetime import datetime, timedelta
+from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -41,12 +41,13 @@ from core.models import (
     FormaPago,
     EstadoPedido,
 )
+from core.time import utc_now
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-NOW = datetime.utcnow()
+NOW = utc_now()
 
 
 async def get_or_skip(session: AsyncSession, model, **filters):

@@ -29,7 +29,7 @@ Valid transitions:
   5 and 6 are terminal states — no transitions from them.
 """
 import json
-from datetime import datetime, timedelta
+from datetime import timedelta
 from decimal import Decimal
 from typing import Optional
 
@@ -37,6 +37,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select, func
 
 from core.models import DetallePedido, HistorialEstadoPedido, Pedido, Configuracion
+from core.time import utc_now
 from infrastructure.uow import UnitOfWork
 from pedidos.schemas import (
     CambioPrecioItem,
@@ -268,7 +269,7 @@ async def create_pedido(
     # Rate limit check — dynamic from Configuracion table
     # ------------------------------------------------------------------
     rate_limit = await _get_config_int(uow, 'pedidos_rate_limit_por_hora', 10)
-    one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+    one_hour_ago = utc_now() - timedelta(hours=1)
     count_stmt = select(func.count()).select_from(Pedido).where(
         Pedido.usuario_id == usuario_id,
         Pedido.creado_en >= one_hour_ago,

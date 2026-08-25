@@ -16,7 +16,7 @@ Architecture note:
   Service layer owns all business rules. No session.commit() here — the caller
   wraps calls inside ``async with uow:`` which auto-commits on exit.
 """
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 
@@ -25,6 +25,7 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import selectinload
 
 from core.models import RefreshToken, Rol, Usuario, UsuarioRol
+from core.time import utc_now
 from infrastructure.uow import UnitOfWork
 
 
@@ -54,7 +55,7 @@ class AdminUsuarioService:
             update(RefreshToken)
             .where(RefreshToken.usuario_id == usuario_id)
             .where(RefreshToken.revoked_at.is_(None))
-            .values(revoked_at=datetime.utcnow())
+            .values(revoked_at=utc_now())
             .execution_options(synchronize_session=False)
         )
         await uow.session.execute(stmt)
@@ -247,7 +248,7 @@ class AdminUsuarioService:
             usuario.email = str(data.email)
         if data.telefono is not None:
             usuario.telefono = data.telefono
-        usuario.actualizado_en = datetime.utcnow()
+        usuario.actualizado_en = utc_now()
 
         uow.session.add(usuario)
         await uow.session.flush()
@@ -340,7 +341,7 @@ class AdminUsuarioService:
 
         # (c) Update status
         usuario.activo = activo
-        usuario.actualizado_en = datetime.utcnow()
+        usuario.actualizado_en = utc_now()
         uow.session.add(usuario)
         await uow.session.flush()
 

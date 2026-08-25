@@ -1,9 +1,9 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-08-25 (`shipping-fee-consistency` ARCHIVADO — envío computado en backend + drawer/checkout corregidos)
+> **Última actualización**: 2026-08-25 (`fix-timestamps-timezone` ARCHIVADO — timestamps timezone-aware, bug +3h resuelto)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
-> **Versión mapa**: 5.16 — Estado real sincronizado
+> **Versión mapa**: 5.17 — Estado real sincronizado
 
 ---
 
@@ -464,6 +464,22 @@ Archivado: `2026-05-15-checkout-pre-validation`
 
 ## EPIC 10 — Pedidos
 
+### ✅ `fix-timestamps-timezone` *(Hecho — archivado 2026-08-25)*
+**Evidencia**: `openspec/changes/archive/2026-08-25-fix-timestamps-timezone/`
+
+Fix del bug de hora (+3h) en todos los timestamps. Causa raíz: `datetime.utcnow()` (naive UTC) → `TIMESTAMP WITHOUT TIME ZONE` → Pydantic serializaba sin sufijo `Z` → JS interpretaba como hora local. Correcciones:
+1. Helper `utc_now()` en `backend/core/time.py` (fuente única, mockeable) — reemplaza los ~11+ `datetime.utcnow()` en modelos, repositorios, servicios y seed.
+2. Columnas timestamp timezone-aware (`sa_type=DateTime(timezone=True)`) en 15 tablas / 32 columnas.
+3. Migración Alembic `013` con `AT TIME ZONE 'UTC'` (upgrade + downgrade) — datos históricos preservan el instante.
+4. Pydantic v2 ahora serializa `"2026-08-25T18:12:56.423227Z"` → JS convierte a zona local automáticamente. Cero cambios frontend.
+
+**Verificación**: `GET /api/v1/pedidos/31` → `creado_en: 2026-08-25T18:12:56.423227Z` (18:12Z = 15:12 Argentina). BD: 32 columnas `timestamp with time zone`. Backend 469 passed (41 pre-existentes ajenos). Frontend 697 vitest sin cambios, tsc 0 errores. Round-trip downgrade/upgrade sin corrimiento.
+
+**Skills**: `python-fastapi-ddd-skill`, `supabase-postgres-best-practices`, `api-design`, `post-change-verification`
+**Dependencias**: todos los módulos backend con timestamps
+
+---
+
 ### ✅ `shipping-fee-consistency` *(Hecho — archivado 2026-08-25)*
 **Evidencia**: `openspec/changes/archive/2026-08-25-shipping-fee-consistency/`
 
@@ -890,6 +906,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.17 | 2026-08-25 | `fix-timestamps-timezone` ARCHIVADO. Bug +3h resuelto: utc_now() aware + 32 columnas TIMESTAMPTZ (migración 013) + serialización RFC 3339 con Z. 469 pytest, 697 vitest. |
 | 5.16 | 2026-08-25 | `shipping-fee-consistency` ARCHIVADO. Envío computado en backend (envio_gratis_umbral + envio_costo), columna Pedido.envio (migración 012), hook useCartTotals compartido, CartDrawer + CheckoutPage corregidos. 697 vitest, 6 E2E shipping, smoke real 2800→3300. |
 | 5.15 | 2026-08-25 | `mercadopago-live-integration` ARCHIVADO. Compra real verificada por UI (chrome-devtools): pedido #31 CONFIRMADO vía webhook MP real (Operación #1350821413). 2 bugs corregidos. Deuda técnica: 41 tests backend pre-existentes fallando. |
 | 5.13 | 2026-08-18 | Cierre documental: 4 archives huérfanos incorporados al EPIC 13 (fix-build-critical, post-merge-critical-fixes, post-merge-medium-fixes, refactor-fsd-performance — todos ✅ verificados en código). `test-opsx-workflow` documentado como PoC de validación del flujo OPSX (no change de producto). |

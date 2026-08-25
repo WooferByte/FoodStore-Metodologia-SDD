@@ -3,7 +3,7 @@ Auth service — business logic for user registration, login, and token refresh.
 
 Pattern: Service layer owns business rules; delegates persistence to UoW/repositories.
 """
-from datetime import datetime, timedelta
+from datetime import timedelta, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -12,6 +12,7 @@ from auth.schemas import LoginRequest, RefreshRequest, RegisterRequest, TokenRes
 from core.models import Usuario, UsuarioRol, RefreshToken, Configuracion
 from core.security import hash_password, verify_password, create_access_token, create_refresh_token
 from core.config import settings
+from core.time import utc_now
 from infrastructure.uow import UnitOfWork
 from usuarios.schemas import UsuarioResponse
 
@@ -97,7 +98,7 @@ async def register_user(data: RegisterRequest, uow: UnitOfWork) -> TokenResponse
     refresh_expire_days = await _get_config_int(uow, 'refresh_token_expiracion_dias', 7)
     refresh_expires_delta = timedelta(days=refresh_expire_days)
     refresh_token_str = create_refresh_token(usuario.id, expires_delta=refresh_expires_delta)
-    expires_at = datetime.utcnow() + refresh_expires_delta
+    expires_at = utc_now() + refresh_expires_delta
 
     refresh_token_record = RefreshToken(
         usuario_id=usuario.id,
@@ -203,7 +204,7 @@ async def login_user(data: LoginRequest, uow: UnitOfWork) -> TokenResponse:
     refresh_expire_days = await _get_config_int(uow, 'refresh_token_expiracion_dias', 7)
     refresh_expires_delta = timedelta(days=refresh_expire_days)
     refresh_token_str = create_refresh_token(usuario.id, expires_delta=refresh_expires_delta)
-    expires_at = datetime.utcnow() + refresh_expires_delta
+    expires_at = utc_now() + refresh_expires_delta
 
     refresh_token_record = RefreshToken(
         usuario_id=usuario.id,
@@ -257,7 +258,7 @@ async def logout_user(data: RefreshRequest, uow: UnitOfWork) -> None:
         return None
 
     # 4. Token is active — revoke it now
-    token_record.revoked_at = datetime.utcnow()
+    token_record.revoked_at = utc_now()
     await uow.refresh_tokens.update(token_record)
 
     # 5. Return None → router returns 204 No Content
@@ -286,7 +287,7 @@ async def refresh_token_service(data: RefreshRequest, uow: UnitOfWork) -> TokenR
     Raises:
         HTTPException 401 for any validation failure.
     """
-    now = datetime.utcnow()
+    now = utc_now()
 
     # 1. Look up the token row
     token_record = await uow.refresh_tokens.find_by(token=data.refresh_token)
@@ -313,8 +314,12 @@ async def refresh_token_service(data: RefreshRequest, uow: UnitOfWork) -> TokenR
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # 4. Token is expired (both expires_at and now are naive UTC)
-    if token_record.expires_at < now:
+    # 4. Token is expired (both expires_at and now are aware UTC).
+    #    Legacy naive values are reinterpreted as UTC (AT TIME ZONE 'UTC' contract).
+    expires_at = token_record.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < now:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token expired",
@@ -359,7 +364,7 @@ async def refresh_token_service(data: RefreshRequest, uow: UnitOfWork) -> TokenR
     refresh_expire_days = await _get_config_int(uow, 'refresh_token_expiracion_dias', 7)
     refresh_expires_delta = timedelta(days=refresh_expire_days)
     new_refresh_token_str = create_refresh_token(usuario.id, expires_delta=refresh_expires_delta)
-    new_expires_at = datetime.utcnow() + refresh_expires_delta
+    new_expires_at = utc_now() + refresh_expires_delta
     new_token_record = RefreshToken(
         usuario_id=usuario.id,
         token=new_refresh_token_str,

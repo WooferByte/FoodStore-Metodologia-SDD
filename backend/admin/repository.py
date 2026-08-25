@@ -11,7 +11,7 @@ Queries:
   get_pedidos_por_estado — count + merge with all states (max 6 iterations)
 """
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 
@@ -19,6 +19,7 @@ from sqlalchemy import func, select, cast, Date as SaDate
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.models import DetallePedido, EstadoPedido, Pedido, Producto, Usuario
+from core.time import utc_now
 from admin.schemas import (
     MetricasResumenResponse,
     PedidosPorEstadoItem,
@@ -59,7 +60,7 @@ class AdminMetricasRepository:
 
         No Python loops — all aggregation done in SQL.
         """
-        today = datetime.utcnow().date()
+        today = utc_now().date()
 
         # --- total_ventas ---
         ventas_stmt = (

@@ -8,8 +8,6 @@ Exported functions:
   assign_role(uow, user_id, rol_nombre) -> AssignRoleResponse
   remove_role(uow, user_id, rol_nombre) -> None
 """
-from datetime import datetime
-
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
@@ -73,7 +71,7 @@ class RoleService:
            (HTTP 409 if not).
         4. Idempotent: assigning the same role the user already has is a no-op.
 
-        Uses datetime.utcnow() (NOT datetime.now(UTC)) for timestamps.
+        Uses core.time.utc_now() for timestamps.
 
         Args:
             uow: Active Unit of Work.

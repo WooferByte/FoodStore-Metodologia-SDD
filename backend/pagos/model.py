@@ -7,9 +7,10 @@ Pago model is defined in core/models.py — not re-defined here.
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Column
+from sqlalchemy import Column, DateTime as SaDateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import SQLModel, Field
+from core.time import utc_now
 
 
 class PagoWebhookLog(SQLModel, table=True):
@@ -36,4 +37,4 @@ class PagoWebhookLog(SQLModel, table=True):
     payload: dict = Field(sa_column=Column(JSONB, nullable=False))
     procesado: bool = Field(default=False)
     error_msg: Optional[str] = Field(default=None)
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    creado_en: datetime = Field(default_factory=utc_now, sa_type=SaDateTime(timezone=True))

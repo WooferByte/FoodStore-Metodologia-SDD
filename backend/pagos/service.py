@@ -29,7 +29,6 @@ import hashlib
 import hmac
 import logging
 import uuid
-from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
@@ -38,6 +37,7 @@ from sqlalchemy.exc import IntegrityError
 
 from core.config import settings
 from core.models import Pago
+from core.time import utc_now
 from infrastructure.uow import UnitOfWork
 from pagos.model import PagoWebhookLog
 from pagos.schemas import (
@@ -416,7 +416,7 @@ async def procesar_webhook(
             # Update existing pago status if changed
             if existing_pago.mp_status != mp_status:
                 existing_pago.mp_status = mp_status
-                existing_pago.actualizado_en = datetime.utcnow()
+                existing_pago.actualizado_en = utc_now()
                 uow.session.add(existing_pago)
                 await uow.session.flush()
 

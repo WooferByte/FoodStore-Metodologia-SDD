@@ -11,6 +11,7 @@ from fastapi import HTTPException, status
 
 from configuracion.schemas import ConfigUpdateRequest, ConfiguracionResponse
 from core.models import Configuracion, Usuario
+from core.time import utc_now
 from infrastructure.uow import UnitOfWork
 
 
@@ -101,13 +102,11 @@ async def update_configuracion(
     Raises:
         HTTPException 404 if clave does not exist.
     """
-    from datetime import datetime
-
     config = await _get_by_clave_or_404(uow, clave)
 
     config.valor = data.valor
     config.actualizado_por = current_user.id
-    config.actualizado_en = datetime.utcnow()
+    config.actualizado_en = utc_now()
 
     await uow.configuracion.update(config)
     return config

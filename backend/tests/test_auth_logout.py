@@ -10,7 +10,7 @@ Security scenarios tested:
 - Unknown token → 401 "Invalid refresh token"
 - logout_user does NOT affect other sessions (does not revoke sibling tokens)
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 import pytest
 
@@ -36,7 +36,7 @@ def _make_refresh_token_record(
     mock.id = id
     mock.usuario_id = usuario_id
     mock.token = token
-    mock.expires_at = expires_at or (datetime.utcnow() + timedelta(days=7))
+    mock.expires_at = expires_at or (datetime.now(timezone.utc) + timedelta(days=7))
     mock.revoked_at = revoked_at
     return mock
 
@@ -111,7 +111,7 @@ class TestLogoutUserService:
         from auth.service import logout_user
 
         revoked_record = _make_refresh_token_record(
-            revoked_at=datetime.utcnow() - timedelta(hours=1)
+            revoked_at=datetime.now(timezone.utc) - timedelta(hours=1)
         )
         uow = _make_uow(token_record=revoked_record)
         data = _make_logout_request()
@@ -171,8 +171,8 @@ class TestLogoutUserService:
         uow = _make_uow(token_record=active_record)
         data = _make_logout_request()
 
-        before = datetime.utcnow()
+        before = datetime.now(timezone.utc)
         await logout_user(data, uow)
-        after = datetime.utcnow()
+        after = datetime.now(timezone.utc)
 
         assert before <= active_record.revoked_at <= after

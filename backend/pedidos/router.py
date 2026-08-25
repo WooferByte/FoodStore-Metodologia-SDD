@@ -407,7 +407,7 @@ async def delete_pedido(
       3. CLIENT-only state check — 409 if not in PENDIENTE (estado_id=1).
          ADMIN can cancel any cancellable state (service validates FSM).
       4. Call service.cancelar() — FSM → CANCELADO, stock reverted, historial appended.
-      5. Set eliminado_en = utcnow() — soft delete within the same UoW transaction.
+      5. Set eliminado_en = utc_now() — soft delete within the same UoW transaction.
 
     All steps run inside a single `async with uow:` block for atomicity.
     """

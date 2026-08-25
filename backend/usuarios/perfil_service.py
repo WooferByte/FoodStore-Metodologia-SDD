@@ -6,12 +6,11 @@ Architecture: Router → Service → UoW → Repository → Model
   - The UoW context manager handles commit/rollback automatically.
   - HTTPException is raised here (not in the router, not in repositories).
 """
-from datetime import datetime
-
 from fastapi import HTTPException, status
 
 from core.models import Usuario
 from core.security import hash_password, verify_password
+from core.time import utc_now
 from infrastructure.uow import UnitOfWork
 from usuarios.perfil_schemas import CambiarPasswordRequest, PerfilUpdate
 from usuarios.schemas import UsuarioResponse
@@ -108,5 +107,5 @@ async def cambiar_password(
     tokens = await uow.refresh_tokens.find_all_by(usuario_id=current_user.id)
     for token in tokens:
         if token.revoked_at is None:
-            token.revoked_at = datetime.utcnow()
+            token.revoked_at = utc_now()
             await uow.refresh_tokens.update(token)
