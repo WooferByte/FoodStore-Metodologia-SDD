@@ -168,6 +168,22 @@
       "sessions": 1,
       "memories": 0,
       "prompts": 10
+    },
+    {
+      "id": "f5bed102",
+      "created_by": "Woofe",
+      "created_at": "2026-08-25T20:43:30Z",
+      "sessions": 0,
+      "memories": 0,
+      "prompts": 2
+    },
+    {
+      "id": "eae93d2f",
+      "created_by": "Woofe",
+      "created_at": "2026-08-25T21:15:27Z",
+      "sessions": 0,
+      "memories": 0,
+      "prompts": 4
     }
   ]
 }
