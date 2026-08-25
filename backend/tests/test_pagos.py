@@ -30,6 +30,7 @@ from sqlalchemy.exc import IntegrityError
 from core.models import Pago, Pedido
 from pagos import service as pagos_service
 from pagos.model import PagoWebhookLog
+from pagos.schemas import WebhookMPPayload
 from pagos.service import (
     crear_preferencia,
     get_pago_status,
@@ -42,6 +43,13 @@ from pedidos.service import confirmar_pedido_por_pago
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+# mercadopago-live-integration: URLs de test para payload de preferencia.
+# Evitan líneas >79 chars (flake8) y se reutilizan en los asserts de payload.
+TEST_MP_FRONTEND_URL = "https://app.example.com"
+TEST_MP_NOTIF_URL = "https://app.example.com/api/v1/webhooks/mercadopago"
+TEST_MP_LOCAL_FRONTEND_URL = "http://localhost:5173"
+TEST_MP_LOCAL_NOTIF_URL = "http://localhost:8000/api/v1/webhooks/mercadopago"
 
 
 def _make_pedido(
@@ -249,6 +257,71 @@ async def test_crear_preferencia_pedido_no_pendiente():
         await crear_preferencia(pedido_id=100, usuario_id=10, sdk=sdk, uow=uow)
 
     assert exc_info.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_preferencia_payload_urls_configurables():
+    """
+    mercadopago-live-integration 1.1 — back_urls y notification_url
+    se construyen desde MP_FRONTEND_URL y MP_NOTIFICATION_URL.
+    """
+    pedido = _make_pedido(id=100, usuario_id=10, estado_pedido_id=1)
+    uow = _make_uow(pedido=pedido)
+    sdk = _make_sdk()
+
+    with patch("pagos.service.settings") as mock_settings:
+        mock_settings.mp_frontend_url = TEST_MP_FRONTEND_URL
+        mock_settings.mp_notification_url = TEST_MP_NOTIF_URL
+        await crear_preferencia(pedido_id=100, usuario_id=10, sdk=sdk, uow=uow)
+
+    call_data = sdk.preference().create.call_args[0][0]
+    assert call_data["notification_url"] == TEST_MP_NOTIF_URL
+    assert call_data["back_urls"] == {
+        "success": "https://app.example.com/checkout",
+        "failure": "https://app.example.com/checkout",
+        "pending": "https://app.example.com/checkout",
+    }
+
+
+@pytest.mark.asyncio
+async def test_preferencia_auto_return_solo_url_real():
+    """
+    mercadopago-live-integration 1.2 — auto_return: "approved" solo cuando
+    MP_FRONTEND_URL NO es localhost; con default localhost la clave se omite.
+    """
+    pedido = _make_pedido(id=100, usuario_id=10, estado_pedido_id=1)
+
+    # URL real → auto_return presente
+    uow_real = _make_uow(pedido=pedido)
+    sdk_real = _make_sdk()
+    with patch("pagos.service.settings") as mock_settings:
+        mock_settings.mp_frontend_url = TEST_MP_FRONTEND_URL
+        mock_settings.mp_notification_url = TEST_MP_NOTIF_URL
+        await crear_preferencia(
+            pedido_id=100,
+            usuario_id=10,
+            sdk=sdk_real,
+            uow=uow_real,
+        )
+
+    real_call = sdk_real.preference().create.call_args[0][0]
+    assert real_call.get("auto_return") == "approved"
+
+    # localhost → auto_return ausente
+    uow_local = _make_uow(pedido=pedido)
+    sdk_local = _make_sdk()
+    with patch("pagos.service.settings") as mock_settings:
+        mock_settings.mp_frontend_url = TEST_MP_LOCAL_FRONTEND_URL
+        mock_settings.mp_notification_url = TEST_MP_LOCAL_NOTIF_URL
+        await crear_preferencia(
+            pedido_id=100,
+            usuario_id=10,
+            sdk=sdk_local,
+            uow=uow_local,
+        )
+
+    local_call = sdk_local.preference().create.call_args[0][0]
+    assert "auto_return" not in local_call
 
 
 # ---------------------------------------------------------------------------
@@ -598,3 +671,63 @@ def test_validate_mp_signature_valid():
         result = _validate_mp_signature(signature, request_id, data_id)
 
     assert result is True
+
+
+# ---------------------------------------------------------------------------
+# Tests for WebhookMPPayload schema (BUG 1 — live webhook 422)
+# ---------------------------------------------------------------------------
+
+
+def test_webhook_mp_payload_id_entero_parsea():
+    """
+    mercadopago-live-integration BUG 1 — MP webhooks v2 envían el id del
+    evento como INTEGER (e.g. 136690973429). El schema debe aceptarlo y no
+    devolver 422 en el endpoint.
+    """
+    body = {
+        "id": 136690973429,
+        "live_mode": False,
+        "type": "payment",
+        "date_created": "2026-08-25T17:40:26Z",
+        "user_id": 282273773,
+        "api_version": "v1",
+        "action": "payment.created",
+        "data": {"id": "1327962410"},
+    }
+    parsed = WebhookMPPayload.model_validate(body)
+    assert parsed.id == 136690973429
+    assert parsed.type == "payment"
+    assert parsed.action == "payment.created"
+    assert parsed.data == {"id": "1327962410"}
+
+
+def test_webhook_mp_payload_id_str_y_data_int_tolerantes():
+    """
+    El schema tolera id como str (IPN legacy) y data.id como int
+    (variante que MP puede enviar en pagos creados por API).
+    """
+    parsed = WebhookMPPayload.model_validate(
+        {"id": "136690973429", "type": "payment", "data": {"id": 1327962410}}
+    )
+    assert parsed.id == "136690973429"
+    assert parsed.data == {"id": 1327962410}
+
+
+def test_webhook_mp_payload_campos_extra_ignorados():
+    """
+    Campos que MP agrega (user_id, live_mode, api_version, nuevos) no
+    rompen la validación: el schema usa extra='allow'.
+    """
+    parsed = WebhookMPPayload.model_validate(
+        {
+            "id": 136690973429,
+            "type": "payment",
+            "data": {"id": "1327962410"},
+            "user_id": 282273773,
+            "live_mode": False,
+            "api_version": "v1",
+            "something_new": {"nested": True},
+        }
+    )
+    assert parsed.type == "payment"
+    assert parsed.id == 136690973429

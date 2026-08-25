@@ -9,7 +9,7 @@ Supports:
 """
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 
@@ -54,7 +54,7 @@ class WebhookMPPayload(BaseModel):
     """
 
     topic: Optional[str] = None
-    id: Optional[str] = None
+    id: Optional[Union[str, int]] = None
     data: Optional[Dict[str, Any]] = None
     type: Optional[str] = None
     action: Optional[str] = None

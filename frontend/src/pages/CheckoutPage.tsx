@@ -6,7 +6,9 @@
  * Behavior:
  *   1. On mount, fires cart pre-validation mutation (useCheckoutValidation).
  *   2. Detects query params from MercadoPago redirect:
- *      ?payment=success|failure|pending&pedido_id=X → shows PaymentStatusModal.
+ *      native ?status=approved|pending|rejected&external_reference=<pedido_id>
+ *      with legacy fallback ?payment=success|failure|pending&pedido_id=X
+ *      → updates paymentStore and shows PaymentStatusModal.
  *   3. After validation passes (or user confirms soft warnings):
  *      - Shows buyer info form (nombre, email, telefono)
  *      - Shows PaymentMethodSelector
@@ -32,6 +34,7 @@ import { MercadoPagoButton } from '@/features/payments/components/MercadoPagoBut
 import { PaymentStatusModal } from '@/features/payments/components/PaymentStatusModal'
 import { useCreateOrder } from '@/features/payments/hooks/useCreateOrder'
 import { useCreatePreference } from '@/features/payments/hooks/useCreatePreference'
+import { mpReturnToPaymentResult } from '@/features/payments/utils/mpReturnToPaymentResult'
 import { usePaymentStore } from '@/store/paymentStore'
 import { useCartStore } from '@/store/cartStore'
 import { useUIStore } from '@/store/uiStore'
@@ -52,6 +55,12 @@ interface FormErrors {
   nombre_comprador?: string
   email_comprador?: string
   telefono_comprador?: string
+}
+
+// FormaPago ids del backend seed (backend/scripts/seed.py): 1=EFECTIVO, 2=MERCADOPAGO.
+const FORMA_PAGO_ID_BY_METHOD: Record<'mercadopago' | 'cash', number> = {
+  mercadopago: 2,
+  cash: 1,
 }
 
 function validateForm(form: BuyerForm): FormErrors {
@@ -128,38 +137,33 @@ export default function CheckoutPage() {
 
   // ---------------------------------------------------------------------------
   // 6.6 — Detect query params from MercadoPago redirect
+  //      Native MP params (status + external_reference) with legacy fallback.
   // ---------------------------------------------------------------------------
-  useEffect(() => {
-    const paymentResult = searchParams.get('payment')
-    const pedidoIdParam = searchParams.get('pedido_id')
+  const hasReturnResult =
+    mpReturnToPaymentResult({
+      status: searchParams.get('status'),
+      externalReference: searchParams.get('external_reference'),
+      payment: searchParams.get('payment'),
+      pedidoId: searchParams.get('pedido_id'),
+    }) !== null
 
-    if (paymentResult === 'success' && pedidoIdParam) {
-      const id = parseInt(pedidoIdParam, 10)
-      if (!isNaN(id)) {
-        setPedidoId(id)
-        setStatus('success')
-      }
-    } else if (paymentResult === 'failure') {
-      if (pedidoIdParam) {
-        const id = parseInt(pedidoIdParam, 10)
-        if (!isNaN(id)) setPedidoId(id)
-      }
-      setStatus('error')
-    } else if (paymentResult === 'pending') {
-      if (pedidoIdParam) {
-        const id = parseInt(pedidoIdParam, 10)
-        if (!isNaN(id)) setPedidoId(id)
-      }
-      setStatus('pending')
-    }
+  useEffect(() => {
+    const result = mpReturnToPaymentResult({
+      status: searchParams.get('status'),
+      externalReference: searchParams.get('external_reference'),
+      payment: searchParams.get('payment'),
+      pedidoId: searchParams.get('pedido_id'),
+    })
+    if (!result) return
+    if (result.pedidoId !== null) setPedidoId(result.pedidoId)
+    setStatus(result.status)
   }, [searchParams, setPedidoId, setStatus])
 
   // ---------------------------------------------------------------------------
   // Validate cart on mount (if no payment result from query params)
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    const paymentResult = searchParams.get('payment')
-    if (paymentResult) return // Skip validation if coming back from MP
+    if (hasReturnResult) return // Skip validation if coming back from MP
 
     // Redirect if cart is empty
     if (items.length === 0) {
@@ -201,11 +205,18 @@ export default function CheckoutPage() {
     setFormErrors({})
     setStatus('creating_order')
 
+    // BUG 2: enviar el id backend del método de pago SELECCIONADO (no EFECTIVO).
+    // El botón de pagar solo se renderiza con un método elegido; cash → EFECTIVO.
+    const formaPagoId =
+      paymentMethod === 'cash'
+        ? FORMA_PAGO_ID_BY_METHOD.cash
+        : FORMA_PAGO_ID_BY_METHOD.mercadopago
+
     // Build order payload from cart
     createOrderMutation.mutate(
       {
         direccion_entrega_id: 1, // TODO: pick from address selector when available
-        forma_pago_id: 1,        // MercadoPago = 1 (verify with backend seed)
+        forma_pago_id: formaPagoId,
         observacion: undefined,
         items: items.map((item) => ({
           producto_id: Number(item.productId),
@@ -258,7 +269,7 @@ export default function CheckoutPage() {
   const showForm =
     !modalOpen &&
     (confirmedDespiteWarnings || (!isHardBlock && !!validationResult)) &&
-    !searchParams.get('payment')
+    !hasReturnResult
 
   const cartTotal = totalPrice()
   const isPayButtonLoading =
@@ -592,7 +603,7 @@ export default function CheckoutPage() {
       )}
 
       {/* Coming back from MP but no payment param — just show form */}
-      {!showForm && !isValidationLoading && !modalOpen && !searchParams.get('payment') && validationResult && isHardBlock && (
+      {!showForm && !isValidationLoading && !modalOpen && !hasReturnResult && validationResult && isHardBlock && (
         <div className="text-center py-12">
           <p className="text-muted-foreground">
             Revisá tu carrito para continuar.
