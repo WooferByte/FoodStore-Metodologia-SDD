@@ -12,18 +12,38 @@
 
 import '@testing-library/jest-dom'
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { CartDrawer } from '@/widgets/CartDrawer/CartDrawer'
 import { useUIStore, useCartStore } from '@/store'
 
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+    },
+  })
+}
+
+function seedConfig(configs: Array<{ clave: string; valor: string }>) {
+  queryClient.setQueryData(['system-config'], configs)
+}
+
+const queryClient = createTestQueryClient()
+
 function renderWithRouter(ui: React.ReactElement, initialPath = '/') {
-  return render(<MemoryRouter initialEntries={[initialPath]}>{ui}</MemoryRouter>)
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[initialPath]}>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  )
 }
 
 describe('CartDrawer', () => {
   beforeEach(() => {
     localStorage.clear()
+    queryClient.clear()
     useCartStore.setState({ items: [] })
     useUIStore.setState({
       theme: 'light',
@@ -85,8 +105,66 @@ describe('CartDrawer', () => {
 })
 
 // ---------------------------------------------------------------------------
-// BUG 3 fix — CartDrawer returns null on /checkout route
+// shipping-fee-consistency — footer + CTA totals (task 4.2)
 // ---------------------------------------------------------------------------
+
+describe('CartDrawer — footer totals (shipping fee)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    queryClient.clear()
+    useCartStore.setState({ items: [] })
+    useUIStore.setState({
+      theme: 'light',
+      sidebarOpen: false,
+      cartDrawerOpen: true,
+      toasts: [],
+      _hasHydrated: true,
+    })
+    seedConfig([
+      { clave: 'envio_gratis_umbral', valor: '3000' },
+      { clave: 'envio_costo', valor: '500' },
+    ])
+  })
+
+  it('subtotal $2.800 → fila Envío $500 y Total $3.300', () => {
+    useCartStore.setState({
+      items: [
+        { productId: 'p1', name: 'Pizza', price: 2800, quantity: 1 },
+      ],
+    })
+    renderWithRouter(<CartDrawer />)
+    const footer = within(screen.getByRole('contentinfo'))
+    expect(footer.getByText('Envío')).toBeInTheDocument()
+    expect(footer.getByText(/\$\s500,00/)).toBeInTheDocument()
+    expect(footer.getByText('Total')).toBeInTheDocument()
+    expect(footer.getAllByText(/\$\s3\.300,00/).length).toBeGreaterThan(0)
+  })
+
+  it('subtotal $2.800 → CTA "Proceder al pago" muestra total $3.300', () => {
+    useCartStore.setState({
+      items: [
+        { productId: 'p1', name: 'Pizza', price: 2800, quantity: 1 },
+      ],
+    })
+    renderWithRouter(<CartDrawer />)
+    expect(
+      screen.getByRole('link', { name: /Proceder al pago · \$\s3\.300,00/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('subtotal $3.000 → envío gratis (¡Gratis!) y Total $3.000', () => {
+    useCartStore.setState({
+      items: [
+        { productId: 'p1', name: 'Pizza', price: 3000, quantity: 1 },
+      ],
+    })
+    renderWithRouter(<CartDrawer />)
+    expect(screen.getByLabelText('Envío gratis')).toBeInTheDocument()
+    expect(screen.getByText(/\$\s0,00/)).toBeInTheDocument()
+    expect(screen.getAllByText(/\$\s3\.000,00/).length).toBeGreaterThan(0)
+  })
+})
+
 
 describe('CartDrawer — BUG 3: disabled on /checkout', () => {
   beforeEach(() => {

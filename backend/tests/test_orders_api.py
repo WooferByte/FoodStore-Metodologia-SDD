@@ -92,6 +92,7 @@ def _make_pedido(
     p.id = id
     p.usuario_id = usuario_id
     p.estado_pedido_id = estado_pedido_id
+    p.envio = Decimal("0.00")
     p.total = total
     p.direccion_entrega_id = 1
     p.forma_pago_id = 1
@@ -845,6 +846,237 @@ class TestDeletePedidoAdminCanCancelConfirmed:
 
         assert exc_info.value.status_code == 409
         assert exc_info.value.detail["estado_actual"] == 5
+
+
+# ===========================================================================
+# shipping-fee-consistency — create_pedido computes envio + total (task 2.1)
+# ===========================================================================
+
+
+class _FakeResult:
+    def __init__(self, value):
+        self._value = value
+
+    def scalar_one_or_none(self):
+        return self._value
+
+    def scalar(self):
+        return self._value
+
+
+class _FakeShippingSession:
+    """Fake session that answers config + rate-limit queries from a dict."""
+
+    def __init__(self, config_values):
+        self.config_values = config_values
+        self.add = MagicMock()
+        self.flush = AsyncMock()
+
+    async def execute(self, stmt):
+        params = stmt.compile().params
+        if "clave_1" in params:
+            return _FakeResult(self.config_values.get(params["clave_1"]))
+        return _FakeResult(0)
+
+
+def _make_shipping_uow(session=None):
+    """UoW mock for create_pedido with shipping config reads."""
+    uow = MagicMock()
+    uow.session = session
+    if session is None:
+        uow.session = MagicMock()
+        # Only the rate-limit count query reaches the session here
+        uow.session.execute = AsyncMock(return_value=_FakeResult(0))
+        uow.session.add = MagicMock()
+        uow.session.flush = AsyncMock()
+
+    direccion = MagicMock()
+    direccion.usuario_id = 10
+    direccion.alias = "Casa"
+    direccion.linea1 = "Av. Test 123"
+    direccion.ciudad = "CABA"
+    direccion.codigo_postal = "1000"
+    direccion.piso = None
+    direccion.departamento = None
+    uow.direcciones_entrega = MagicMock()
+    uow.direcciones_entrega.get_by_id = AsyncMock(return_value=direccion)
+
+    forma_pago = MagicMock()
+    forma_pago.activo = True
+    uow.formas_pago = MagicMock()
+    uow.formas_pago.get_by_id = AsyncMock(return_value=forma_pago)
+
+    uow.productos = MagicMock()
+
+    uow.historial_estado_pedido = MagicMock()
+    uow.historial_estado_pedido.append = AsyncMock(return_value=MagicMock())
+
+    pedidos_repo = AsyncMock()
+    pedidos_repo.create_with_details = AsyncMock(side_effect=lambda p, d: p)
+    uow.pedidos = pedidos_repo
+    return uow
+
+
+def _make_shipping_product(
+    producto_id: int = 1,
+    precio: Decimal = Decimal("1400.00"),
+    stock: int = 10,
+) -> MagicMock:
+    p = MagicMock()
+    p.id = producto_id
+    p.precio_base = precio
+    p.stock_cantidad = stock
+    p.nombre = "Producto Test"
+    p.disponible = True
+    p.eliminado_en = None
+    return p
+
+
+async def _shipping_config(uow, clave: str, default: int) -> int:
+    """Side-effect for _get_config_int: umbral 3000, costo 500."""
+    if clave == "envio_gratis_umbral":
+        return 3000
+    if clave == "envio_costo":
+        return 500
+    return default
+
+
+class TestCreatePedidoShipping:
+    """create_pedido computes envio + total from system config (D1/D2)."""
+
+    @pytest.mark.asyncio
+    async def test_envio_cobrado_cuando_subtotal_menor_umbral(self):
+        """subtotal $2.800 < umbral 3000 → envio=500, total=3300."""
+        from pedidos.service import create_pedido
+
+        uow = _make_shipping_uow()
+        uow.productos.get_by_id_locked = AsyncMock(
+            return_value=_make_shipping_product(precio=Decimal("1400.00"))
+        )
+
+        request = PedidoCreate(
+            direccion_entrega_id=1,
+            forma_pago_id=1,
+            items=[DetallePedidoCreate(producto_id=1, cantidad=2)],
+        )
+
+        with patch(
+            "pedidos.service._get_config_int",
+            new=AsyncMock(side_effect=_shipping_config),
+        ):
+            pedido = await create_pedido(request, usuario_id=10, uow=uow)
+
+        assert pedido.envio == Decimal("500.00")
+        assert pedido.total == Decimal("3300.00")
+
+    @pytest.mark.asyncio
+    async def test_envio_gratis_cuando_subtotal_alcanza_umbral(self):
+        """subtotal $3.000 >= umbral 3000 → envio=0, total=3000."""
+        from pedidos.service import create_pedido
+
+        uow = _make_shipping_uow()
+        uow.productos.get_by_id_locked = AsyncMock(
+            return_value=_make_shipping_product(precio=Decimal("1500.00"))
+        )
+
+        request = PedidoCreate(
+            direccion_entrega_id=1,
+            forma_pago_id=1,
+            items=[DetallePedidoCreate(producto_id=1, cantidad=2)],
+        )
+
+        with patch(
+            "pedidos.service._get_config_int",
+            new=AsyncMock(side_effect=_shipping_config),
+        ):
+            pedido = await create_pedido(request, usuario_id=10, uow=uow)
+
+        assert pedido.envio == Decimal("0.00")
+        assert pedido.total == Decimal("3000.00")
+
+    @pytest.mark.asyncio
+    async def test_claves_ausentes_usan_defaults_3000_500(self):
+        """Sin configuraciones en BD → umbral 3000, costo 500 (envio=500)."""
+        from pedidos.service import create_pedido
+
+        # Real _get_config_int with no config rows → returns the defaults
+        session = _FakeShippingSession({})
+        uow = _make_shipping_uow(session=session)
+        uow.productos.get_by_id_locked = AsyncMock(
+            return_value=_make_shipping_product(precio=Decimal("1400.00"))
+        )
+
+        request = PedidoCreate(
+            direccion_entrega_id=1,
+            forma_pago_id=1,
+            items=[DetallePedidoCreate(producto_id=1, cantidad=2)],
+        )
+
+        pedido = await create_pedido(request, usuario_id=10, uow=uow)
+
+        assert pedido.envio == Decimal("500.00")
+        assert pedido.total == Decimal("3300.00")
+
+    def test_pedido_create_ignora_total_y_envio_fabricados(self):
+        """Pydantic ignora campos extra total/envio en POST /pedidos."""
+        body = PedidoCreate.model_validate(
+            {
+                "direccion_entrega_id": 1,
+                "forma_pago_id": 1,
+                "items": [{"producto_id": 1, "cantidad": 1}],
+                "total": 99999,
+                "envio": 9999,
+            }
+        )
+        assert not hasattr(body, "total")
+        assert not hasattr(body, "envio")
+
+    def test_pedido_response_expone_envio(self):
+        """PedidoResponse incluye envio en creación/listado/detalle."""
+        from datetime import datetime as _dt
+
+        from pedidos.schemas import PedidoResponse
+
+        resp = PedidoResponse(
+            id=1,
+            usuario_id=10,
+            direccion_entrega_id=1,
+            forma_pago_id=1,
+            estado_pedido_id=1,
+            envio=Decimal("500.00"),
+            total=Decimal("3300.00"),
+            observacion=None,
+            direccion_snapshot=None,
+            creado_en=_dt(2026, 1, 1),
+            actualizado_en=_dt(2026, 1, 1),
+        )
+        assert resp.envio == Decimal("500.00")
+        assert resp.total == Decimal("3300.00")
+
+    @pytest.mark.asyncio
+    async def test_backend_recomputa_ignorando_total_fabricado(self):
+        """El backend recomputa total con envío aunque el cliente mande total."""
+        from pedidos.service import create_pedido
+
+        uow = _make_shipping_uow()
+        uow.productos.get_by_id_locked = AsyncMock(
+            return_value=_make_shipping_product(precio=Decimal("1400.00"))
+        )
+
+        request = PedidoCreate(
+            direccion_entrega_id=1,
+            forma_pago_id=1,
+            items=[DetallePedidoCreate(producto_id=1, cantidad=2)],
+        )
+
+        with patch(
+            "pedidos.service._get_config_int",
+            new=AsyncMock(side_effect=_shipping_config),
+        ):
+            pedido = await create_pedido(request, usuario_id=10, uow=uow)
+
+        assert pedido.total == Decimal("3300.00")
+        assert pedido.total != Decimal("2800.00")
 
 
 # ===========================================================================

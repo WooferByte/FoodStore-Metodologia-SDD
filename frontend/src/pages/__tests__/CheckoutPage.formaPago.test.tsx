@@ -10,6 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { usePaymentStore } from '@/store/paymentStore'
 import { useCartStore } from '@/store/cartStore'
 
@@ -65,6 +66,16 @@ vi.mock('@/shared/components/ui/Spinner', () => ({
   Spinner: () => null,
 }))
 
+vi.mock('@/features/cart/hooks', () => ({
+  useCartTotals: () => ({
+    subtotal: 2800,
+    deliveryFee: 500,
+    total: 3300,
+    isFreeDelivery: false,
+    missingForFree: 200,
+  }),
+}))
+
 import CheckoutPage from '@/pages/CheckoutPage'
 
 function seedCart() {
@@ -82,7 +93,14 @@ function renderCheckout() {
   searchParamsMock = new URLSearchParams('')
   navigateMock.mockClear()
   createOrderMock.mockClear()
-  return render(<CheckoutPage />)
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <CheckoutPage />
+    </QueryClientProvider>,
+  )
 }
 
 describe('CheckoutPage — forma_pago_id según método seleccionado', () => {

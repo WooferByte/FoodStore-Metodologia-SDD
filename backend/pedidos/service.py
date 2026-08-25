@@ -243,7 +243,8 @@ async def create_pedido(
       4.3f  Build DetallePedido with precio_snapshot and nombre_snapshot.
       4.3g  Decrement stock_cantidad for each product.
       4.3h  Serialize direccion as JSON string for direccion_snapshot.
-      4.3i  Calculate total.
+      4.3i  Calculate envio from config (envio_gratis_umbral / envio_costo)
+            and total = subtotal + envio.
       4.3j  Build Pedido (estado_pedido_id=1 PENDIENTE).
       4.3k  Persist Pedido + detalles via PedidoRepository.create_with_details().
       4.3l  Append HistorialEstadoPedido entry (estado_anterior=None).
@@ -328,7 +329,7 @@ async def create_pedido(
     # 4.3c–g — Lock products, validate, build detalles, decrement stock
     # ------------------------------------------------------------------
     detalles: list[DetallePedido] = []
-    total = Decimal("0.00")
+    subtotal = Decimal("0.00")
 
     for item in request.items:
         # 4.3c — SELECT FOR UPDATE to prevent race conditions (RN-PE04)
@@ -385,10 +386,20 @@ async def create_pedido(
         producto.stock_cantidad -= item.cantidad
         uow.session.add(producto)
 
-        # Accumulate total
-        total += producto.precio_base * item.cantidad
+        # Accumulate subtotal (shipping computed below from system config)
+        subtotal += producto.precio_base * item.cantidad
 
     await uow.session.flush()  # Persist stock decrements before Pedido insert
+
+    # ------------------------------------------------------------------
+    # 4.3i — Compute shipping from system config (shipping-fee-consistency)
+    #   envio = 0 si subtotal >= envio_gratis_umbral, si no envio_costo
+    #   total = subtotal + envio — el cliente no puede overridear
+    # ------------------------------------------------------------------
+    envio_umbral = await _get_config_int(uow, "envio_gratis_umbral", 3000)
+    envio_costo = await _get_config_int(uow, "envio_costo", 500)
+    envio = Decimal("0.00") if subtotal >= Decimal(envio_umbral) else Decimal(envio_costo)
+    total = subtotal + envio
 
     # ------------------------------------------------------------------
     # 4.3h — Serialize dirección snapshot as JSON string
@@ -413,6 +424,7 @@ async def create_pedido(
         direccion_entrega_id=request.direccion_entrega_id,
         forma_pago_id=request.forma_pago_id,
         estado_pedido_id=1,  # PENDIENTE
+        envio=envio,
         total=total,
         observacion=request.observacion,
         direccion_snapshot=direccion_snapshot,

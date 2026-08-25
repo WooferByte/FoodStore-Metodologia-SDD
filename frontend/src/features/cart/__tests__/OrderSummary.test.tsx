@@ -18,16 +18,30 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { OrderSummary } from '@/features/cart/components/OrderSummary'
 import { useCartStore, useAuthStore } from '@/store'
 
-function createTestQueryClient() {
-  return new QueryClient({
+const SHIPPING_CONFIG = [
+  { clave: 'envio_gratis_umbral', valor: '3000' },
+  { clave: 'envio_costo', valor: '500' },
+]
+
+function createTestQueryClient(
+  configs?: Array<{ clave: string; valor: string }>,
+) {
+  const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: 0 },
     },
   })
+  if (configs) {
+    queryClient.setQueryData(['system-config'], configs)
+  }
+  return queryClient
 }
 
-function renderWithRouter(ui: React.ReactElement) {
-  const queryClient = createTestQueryClient()
+function renderWithRouter(
+  ui: React.ReactElement,
+  configs?: Array<{ clave: string; valor: string }>,
+) {
+  const queryClient = createTestQueryClient(configs)
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>{ui}</MemoryRouter>
@@ -113,5 +127,37 @@ describe('OrderSummary', () => {
     expect(screen.getByText('Subtotal')).toBeInTheDocument()
     expect(screen.getByText('Envío')).toBeInTheDocument()
     expect(screen.getByText('Total')).toBeInTheDocument()
+  })
+
+  // -------------------------------------------------------------------------
+  // shipping-fee-consistency — totals from shared useCartTotals (task 6.2)
+  // -------------------------------------------------------------------------
+
+  it('subtotal $2.800 → Envío $500 y Total $3.300', () => {
+    useCartStore.setState({
+      items: [{ productId: 'p1', name: 'Pizza', price: 2800, quantity: 1 }],
+    })
+    renderWithRouter(<OrderSummary />, SHIPPING_CONFIG)
+    expect(screen.getAllByText(/\$\s500,00/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/\$\s3\.300,00/).length).toBeGreaterThan(0)
+  })
+
+  it('subtotal $2.800 → CTA "Proceder al pago" muestra total $3.300', () => {
+    useCartStore.setState({
+      items: [{ productId: 'p1', name: 'Pizza', price: 2800, quantity: 1 }],
+    })
+    renderWithRouter(<OrderSummary />, SHIPPING_CONFIG)
+    expect(
+      screen.getByRole('link', { name: /Proceder al pago · \$\s3\.300,00/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('subtotal $3.000 → envío gratis y Total $3.000', () => {
+    useCartStore.setState({
+      items: [{ productId: 'p1', name: 'Pizza', price: 3000, quantity: 1 }],
+    })
+    renderWithRouter(<OrderSummary />, SHIPPING_CONFIG)
+    expect(screen.getByLabelText('Envío gratis')).toBeInTheDocument()
+    expect(screen.getAllByText(/\$\s3\.000,00/).length).toBeGreaterThan(0)
   })
 })

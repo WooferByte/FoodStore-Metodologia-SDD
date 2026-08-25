@@ -157,6 +157,7 @@ class PedidoResponse(BaseModel):
     direccion_entrega_id: int
     forma_pago_id: int
     estado_pedido_id: int
+    envio: Decimal
     total: Decimal
     observacion: Optional[str]
     direccion_snapshot: Optional[str]  # JSON as stored string

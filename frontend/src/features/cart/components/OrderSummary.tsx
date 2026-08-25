@@ -7,9 +7,9 @@
  *   - Authenticated: navigates to /checkout (future change)
  *   - Unauthenticated: navigates to /login with state { from: '/checkout' }
  *
- * Delivery logic:
- *   - FREE_DELIVERY_THRESHOLD and DELIVERY_FEE are local constants.
- *   - TODO: replace with API values in checkout change.
+ * Totals come from the shared useCartTotals hook (client subtotal + server
+ * config umbral/costo) so OrderSummary, CartDrawer and CheckoutPage always
+ * show identical amounts.
  *
  * Styling: Only semantic tokens — zero raw colors.
  */
@@ -17,26 +17,18 @@
 import { Link } from 'react-router-dom'
 import { useCartStore, useAuthStore } from '@/store'
 import { formatCurrency } from '@/features/cart/types'
-import { useSystemConfig } from '@/features/configuracion/hooks'
-
-const DELIVERY_FEE = 500
+import { useCartTotals } from '@/features/cart/hooks'
 
 export function OrderSummary() {
   // Granular selectors — each re-renders only when its specific value changes
   const itemCount = useCartStore((s) => s.totalItems())
-  const subtotal = useCartStore((s) => s.totalPrice())
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 
-  // Fetch dynamic threshold from system config — falls back to 3000 if loading
-  const { data: config } = useSystemConfig('envio_gratis_umbral')
-  const FREE_DELIVERY_THRESHOLD = Number(config?.valor ?? 3000)
+  // Shared totals (client subtotal + server config umbral/costo)
+  const { subtotal, deliveryFee, total, isFreeDelivery, missingForFree } =
+    useCartTotals()
 
   const isEmpty = itemCount === 0
-
-  const isFreeDelivery = subtotal >= FREE_DELIVERY_THRESHOLD
-  const deliveryFee = isFreeDelivery ? 0 : DELIVERY_FEE
-  const total = subtotal + deliveryFee
-  const amountToFreeDelivery = FREE_DELIVERY_THRESHOLD - subtotal
 
   const ctaTo = isAuthenticated ? '/checkout' : '/login'
   // Login page expects { from: { pathname } } — same shape as ProtectedRoute
@@ -82,7 +74,7 @@ export function OrderSummary() {
             )}
           </div>
           <span className="text-sm text-muted-foreground">
-            {isFreeDelivery ? formatCurrency(0) : formatCurrency(DELIVERY_FEE)}
+            {isFreeDelivery ? formatCurrency(0) : formatCurrency(deliveryFee)}
           </span>
         </div>
 
@@ -91,7 +83,7 @@ export function OrderSummary() {
           <p className="text-xs text-muted-foreground mt-1">
             Te faltan{' '}
             <span className="font-medium text-foreground">
-              {formatCurrency(amountToFreeDelivery)}
+              {formatCurrency(missingForFree)}
             </span>{' '}
             para envío gratis
           </p>

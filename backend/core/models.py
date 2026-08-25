@@ -304,6 +304,7 @@ class Pedido(SQLModel, table=True):
     direccion_entrega_id: int = Field(foreign_key="direcciones_entrega.id")
     forma_pago_id: int = Field(foreign_key="formas_pago.id")
     estado_pedido_id: int = Field(foreign_key="estados_pedido.id")
+    envio: Decimal = Field(decimal_places=2, max_digits=10, default=Decimal("0.00"))
     total: Decimal = Field(decimal_places=2, max_digits=10)
     observacion: Optional[str] = None
     direccion_snapshot: Optional[str] = None  # JSON con datos de dirección al momento del pedido

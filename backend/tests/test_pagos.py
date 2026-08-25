@@ -284,6 +284,29 @@ async def test_preferencia_payload_urls_configurables():
 
 
 @pytest.mark.asyncio
+async def test_preferencia_unit_price_es_el_total_del_pedido():
+    """
+    shipping-fee-consistency — la preferencia MP cobra float(pedido.total),
+    que ya incluye el envío (D4). Un pedido total=3300 → unit_price=3300.
+    """
+    pedido = _make_pedido(
+        id=100,
+        usuario_id=10,
+        estado_pedido_id=1,
+        total=Decimal("3300.00"),
+    )
+    uow = _make_uow(pedido=pedido)
+    sdk = _make_sdk()
+
+    await crear_preferencia(pedido_id=100, usuario_id=10, sdk=sdk, uow=uow)
+
+    call_data = sdk.preference().create.call_args[0][0]
+    unit_price = call_data["items"][0]["unit_price"]
+    assert unit_price == 3300.0
+    assert unit_price == float(pedido.total)
+
+
+@pytest.mark.asyncio
 async def test_preferencia_auto_return_solo_url_real():
     """
     mercadopago-live-integration 1.2 — auto_return: "approved" solo cuando

@@ -26,6 +26,7 @@
 
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { useCheckoutValidation } from '@/features/checkout/hooks/useCheckoutValidation'
 import { CheckoutValidationModal } from '@/features/checkout/components/CheckoutValidationModal'
@@ -38,6 +39,8 @@ import { mpReturnToPaymentResult } from '@/features/payments/utils/mpReturnToPay
 import { usePaymentStore } from '@/store/paymentStore'
 import { useCartStore } from '@/store/cartStore'
 import { useUIStore } from '@/store/uiStore'
+import { useCartTotals } from '@/features/cart/hooks'
+import { formatCurrency } from '@/features/cart/types'
 import { Spinner } from '@/shared/components/ui/Spinner'
 import type { ValidarCarritoResponse } from '@/features/checkout/types'
 
@@ -93,10 +96,13 @@ function validateForm(form: BuyerForm): FormErrors {
 export default function CheckoutPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const queryClient = useQueryClient()
 
   // Cart store
   const items = useCartStore((state) => state.items)
-  const totalPrice = useCartStore((state) => state.totalPrice)
+
+  // Shared totals (client subtotal + server config umbral/costo)
+  const { subtotal, deliveryFee, total, isFreeDelivery } = useCartTotals()
 
   // Payment store
   const setStatus = usePaymentStore((state) => state.setStatus)
@@ -134,6 +140,15 @@ export default function CheckoutPage() {
   useEffect(() => {
     setCartDrawerOpen(false)
   }, [setCartDrawerOpen])
+
+  // ---------------------------------------------------------------------------
+  // D6 — shipping-fee-consistency: invalidate system-config on mount so the
+  //      summary (envio_gratis_umbral / envio_costo) is fresh before the order
+  //      is created (avoids stale 5-min cache mismatch with the backend).
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['system-config'] })
+  }, [queryClient])
 
   // ---------------------------------------------------------------------------
   // 6.6 — Detect query params from MercadoPago redirect
@@ -271,7 +286,6 @@ export default function CheckoutPage() {
     (confirmedDespiteWarnings || (!isHardBlock && !!validationResult)) &&
     !hasReturnResult
 
-  const cartTotal = totalPrice()
   const isPayButtonLoading =
     paymentStatus === 'creating_order' || paymentStatus === 'creating_preference'
 
@@ -591,11 +605,17 @@ export default function CheckoutPage() {
             <div className="border-t border-border pt-4">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span className="text-foreground">${cartTotal.toFixed(2)}</span>
+                <span className="text-foreground">{formatCurrency(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-muted-foreground">Envío</span>
+                <span className="text-foreground">
+                  {isFreeDelivery ? formatCurrency(0) : formatCurrency(deliveryFee)}
+                </span>
               </div>
               <div className="flex justify-between font-bold text-base">
                 <span className="text-foreground">Total</span>
-                <span className="text-foreground">${cartTotal.toFixed(2)}</span>
+                <span className="text-foreground">{formatCurrency(total)}</span>
               </div>
             </div>
           </aside>

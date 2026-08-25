@@ -24,6 +24,7 @@ import { useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { X, ShoppingCart } from 'lucide-react'
 import { useUIStore, useCartStore, useAuthStore } from '@/store'
+import { useCartTotals } from '@/features/cart/hooks'
 import { CartItemRow } from '@/features/cart/components/CartItemRow'
 import { EmptyCart } from '@/features/cart/components/EmptyCart'
 import { formatCurrency } from '@/features/cart/types'
@@ -38,9 +39,11 @@ export function CartDrawer() {
   // Granular selectors — never subscribe to entire store
   const items = useCartStore((s) => s.items)
   const totalItems = useCartStore((s) => s.totalItems())
-  const totalPrice = useCartStore((s) => s.totalPrice())
   const removeItem = useCartStore((s) => s.removeItem)
   const updateQuantity = useCartStore((s) => s.updateQuantity)
+
+  // Shared totals (client subtotal + server config umbral/costo)
+  const { deliveryFee, total, isFreeDelivery } = useCartTotals()
 
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
@@ -158,11 +161,32 @@ export function CartDrawer() {
         {/* Fixed footer with totals + CTAs */}
         {items.length > 0 && (
           <footer className="shrink-0 border-t border-border px-4 py-4 space-y-3 bg-card">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Total</span>
-              <span className="text-xl font-bold text-foreground">
-                {formatCurrency(totalPrice)}
-              </span>
+            <div className="space-y-1">
+              {/* Delivery row */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Envío</span>
+                  {isFreeDelivery && (
+                    <span
+                      aria-label="Envío gratis"
+                      className="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20"
+                    >
+                      ¡Gratis!
+                    </span>
+                  )}
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {isFreeDelivery ? formatCurrency(0) : formatCurrency(deliveryFee)}
+                </span>
+              </div>
+
+              {/* Total row — typographic hierarchy: largest, boldest */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">Total</span>
+                <span className="text-xl font-bold text-foreground">
+                  {formatCurrency(total)}
+                </span>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -182,7 +206,7 @@ export function CartDrawer() {
                 onClick={() => setCartDrawerOpen(false)}
                 className="block w-full py-3 px-4 rounded-md bg-primary text-primary-foreground font-semibold text-sm text-center hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Proceder al pago · {formatCurrency(totalPrice)}
+                Proceder al pago · {formatCurrency(total)}
               </Link>
             </div>
           </footer>
