@@ -1,9 +1,9 @@
 # Food Store — Mapa Completo de Changes (SDD)
 
 > **Documento de referencia**: Define todos los changes necesarios para desarrollar Food Store de principio a fin.
-> **Última actualización**: 2026-08-25 (`fix-timestamps-timezone` ARCHIVADO — timestamps timezone-aware, bug +3h resuelto)
+> **Última actualización**: 2026-08-26 (`fix-refresh-loop-cartdrawer` ARCHIVADO — hotfix loop refresh anónimos)
 > **Versión especificación**: 5.0 (ERD v5, Feature-First, SDD)
-> **Versión mapa**: 5.17 — Estado real sincronizado
+> **Versión mapa**: 5.18 — Estado real sincronizado
 
 ---
 
@@ -495,6 +495,22 @@ Fix de consistencia del costo de envío. La regla existía SOLO en `OrderSummary
 
 ---
 
+### ✅ `fix-refresh-loop-cartdrawer` *(Hecho — archivado 2026-08-26)*
+**Evidencia**: `openspec/changes/archive/2026-08-26-fix-refresh-loop-cartdrawer/`
+
+Hotfix crítico: loop infinito de refresh para usuarios anónimos. Causa raíz: `CartDrawer` montado global en `App.tsx` → `useCartTotals` → `useSystemConfig` → `GET /admin/configuracion` incondicional (sin sesión) → 401 → interceptor refresh con `refreshToken` null → 422 → `logout` + `reload` → loop infinito. Correcciones (4):
+1. **D-1 — gate por auth**: `enabled: isAuthenticated` en `useSystemConfig` y `useAllSystemConfigs` (selector granular `useAuthStore`). Anónimos no disparan el GET.
+2. **D-2 — trailing slash**: `CONFIGURACION_API_PATH` → `/api/v1/admin/configuracion/` (sin él FastAPI responde 307, evitado el redirect).
+3. **D-3 — interceptor**: `!refreshToken` → reject directo sin `POST /auth/refresh` (sin 422, sin logout).
+4. **D-4 — redirect**: `location.href = /login` solo si `pathname !== /login` (ya en /login no recarga).
+
+**Verificación**: vitest **697 → 706** (sin regresiones, +9 tests: useSystemConfig auth-gate, useCartTotals con/ sin auth, axios interceptor anónimo), E2E nuevo `anonymous-cartdrawer` 3/3, `shipping-fee` 6/6 (mock actualizado), `tsc` 0 errores, `build` OK. Compra real E2E por UI (chrome-devtools): pedido #34 CONFIRMADO vía webhook MP real (operación #1350889039).
+
+**Skills**: `frontend-state-management`, `zustand-state-management`, `vercel-react-best-practices`, `jwt-security`, `testing-e2e-playwright`, `post-change-verification`
+**Dependencias**: `shipping-fee-consistency` (introdujo el bug), `frontend-shopping-cart-ui`, `frontend-payment-checkout-ui`
+
+---
+
 ### ✅ `orders-fsm-backend`
 Archivado: `2026-05-15-orders-fsm-backend`
 **Evidencia**: `openspec/changes/archive/2026-05-15-orders-fsm-backend/`
@@ -906,6 +922,7 @@ BLOQUE 9 — Entrega Final
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 5.18 | 2026-08-26 | `fix-refresh-loop-cartdrawer` ARCHIVADO. Hotfix loop refresh anónimos: gate por auth en useSystemConfig/useAllSystemConfigs (D-1), trailing slash config (D-2), interceptor reject sin refreshToken (D-3), redirect solo si no está en /login (D-4). 706 vitest (+9), E2E anonymous-cartdrawer 3/3, compra real #34 confirmada (op. #1350889039). |
 | 5.17 | 2026-08-25 | `fix-timestamps-timezone` ARCHIVADO. Bug +3h resuelto: utc_now() aware + 32 columnas TIMESTAMPTZ (migración 013) + serialización RFC 3339 con Z. 469 pytest, 697 vitest. |
 | 5.16 | 2026-08-25 | `shipping-fee-consistency` ARCHIVADO. Envío computado en backend (envio_gratis_umbral + envio_costo), columna Pedido.envio (migración 012), hook useCartTotals compartido, CartDrawer + CheckoutPage corregidos. 697 vitest, 6 E2E shipping, smoke real 2800→3300. |
 | 5.15 | 2026-08-25 | `mercadopago-live-integration` ARCHIVADO. Compra real verificada por UI (chrome-devtools): pedido #31 CONFIRMADO vía webhook MP real (Operación #1350821413). 2 bugs corregidos. Deuda técnica: 41 tests backend pre-existentes fallando. |

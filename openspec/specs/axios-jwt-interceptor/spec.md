@@ -2,7 +2,9 @@
 
 ## Purpose
 TBD - created by archiving change backend-axios-jwt-interceptor. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Axios instance attaches JWT access token to every request
 
 The axios HTTP client SHALL read the current `accessToken` from `authStore` via `getState()` and inject an `Authorization: Bearer <token>` header on every outgoing request when a token is present.
@@ -24,12 +26,19 @@ The axios HTTP client SHALL read the current `accessToken` from `authStore` via 
 
 ### Requirement: Response interceptor detects 401 and triggers token refresh
 
-The axios response interceptor SHALL detect HTTP 401 Unauthorized responses and automatically attempt to obtain a new token pair by calling `POST /api/v1/auth/refresh` before propagating the error to the caller.
+The axios response interceptor SHALL detect HTTP 401 Unauthorized responses and automatically attempt to obtain a new token pair by calling `POST /api/v1/auth/refresh` before propagating the error to the caller, but ONLY when `authStore` holds a refresh token. When no refresh token is present (anonymous session), the interceptor SHALL reject the error immediately without attempting a refresh.
 
 #### Scenario: 401 response triggers refresh attempt
 
-- **WHEN** an API call returns HTTP 401
+- **WHEN** an API call returns HTTP 401 and `authStore.refreshToken` is non-null
 - **THEN** the interceptor calls `POST /api/v1/auth/refresh` with body `{ refresh_token: <current refreshToken> }`
+
+#### Scenario: Anonymous 401 rejects without refresh call
+
+- **WHEN** an API call returns HTTP 401 and `authStore.refreshToken` is null (anonymous user)
+- **THEN** the interceptor rejects the error immediately
+- **AND** no `POST /api/v1/auth/refresh` request is made
+- **AND** no logout and no browser redirect are triggered
 
 #### Scenario: Successful refresh retries original request
 
@@ -67,7 +76,7 @@ When multiple concurrent requests receive 401 responses simultaneously, the Axio
 
 ### Requirement: Auth failure fallback clears state and redirects to login
 
-The Axios client SHALL perform a full auth logout and redirect the browser to `/login` when a token refresh attempt fails.
+The Axios client SHALL perform a full auth logout and redirect the browser to `/login` when a token refresh attempt fails, except when the browser is already on the `/login` page, in which case it SHALL clear auth state without performing a full page reload.
 
 #### Scenario: Refresh failure calls logout
 
@@ -76,13 +85,19 @@ The Axios client SHALL perform a full auth logout and redirect the browser to `/
 
 #### Scenario: Redirect to login page after logout
 
-- **WHEN** logout is triggered due to refresh failure
+- **WHEN** logout is triggered due to refresh failure and the current path is not `/login`
 - **THEN** the browser navigates to `/login` via `window.location.href`
 
 #### Scenario: No redirect loop on public pages
 
-- **WHEN** user is on the `/login` page and makes a public API request (no access token in store)
-- **THEN** the request does not include an Authorization header and no refresh is triggered, preventing a redirect loop
+- **WHEN** an anonymous user (no access token and no refresh token in the store) triggers an API request that returns HTTP 401
+- **THEN** no refresh is triggered, no logout occurs, and no browser redirect or reload is performed
+
+#### Scenario: No reload when already on the login page
+
+- **WHEN** a refresh failure triggers logout while the current path is already `/login`
+- **THEN** `authStore.logout()` is called
+- **AND** the browser does NOT perform a `window.location` navigation or reload
 
 ### Requirement: Refresh call bypasses the JWT interceptor
 
@@ -111,4 +126,3 @@ The module SHALL continue to export `apiClient`, `axiosInstance`, and `createAxi
 
 - **WHEN** a test calls `createAxiosClient('http://test-server')` to create an isolated instance
 - **THEN** the factory returns a valid Axios instance (interceptor wiring is a separate concern)
-
