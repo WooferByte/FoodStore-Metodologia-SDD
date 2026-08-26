@@ -200,6 +200,12 @@ apiClient.interceptors.response.use(
       return Promise.reject(error)
     }
 
+    // Anonymous session — no refresh token to redeem (D-3: fix-refresh-loop-cartdrawer).
+    // Reject immediately: no POST /auth/refresh, no logout, no redirect.
+    if (!useAuthStore.getState().refreshToken) {
+      return Promise.reject(error)
+    }
+
     // --- Another refresh is already in flight (Task 3.3) ---
     if (isRefreshing) {
       return new Promise<string>((resolve, reject) => {
@@ -235,7 +241,11 @@ apiClient.interceptors.response.use(
       rejectQueue(refreshError)
       isRefreshing = false
       useAuthStore.getState().logout()
-      window.location.href = '/login'
+      // D-4: skip the hard reload when already on /login — React Router is
+      // already on the right page; reloading only restarts the refresh loop.
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
       return Promise.reject(refreshError)
     }
   },

@@ -58,10 +58,10 @@ beforeEach(() => {
   })
   localStorage.clear()
 
-  // Reset window.location.href mock
+  // Reset window.location mock (href + pathname)
   Object.defineProperty(window, 'location', {
     writable: true,
-    value: { href: '' },
+    value: { href: '', pathname: '/' },
   })
 })
 
@@ -246,6 +246,70 @@ describe('Refresh failure', () => {
 
     expect(logoutSpy).toHaveBeenCalled()
     expect(window.location.href).toBe('/login')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Task 4.1 — anonymous 401 short-circuit (fix-refresh-loop-cartdrawer D-3)
+// Task 4.2 — refresh failure on /login does not hard reload (D-4)
+// ---------------------------------------------------------------------------
+
+describe('Anonymous session — no refresh loop (fix-refresh-loop-cartdrawer)', () => {
+  it('4.1 anonymous 401 rejects immediately: no /auth/refresh, no logout, no redirect', async () => {
+    // Anonymous: no access token, no refresh token
+    useAuthStore.setState({
+      accessToken: null,
+      refreshToken: null,
+      user: null,
+      isAuthenticated: false,
+    })
+
+    const logoutSpy = vi.spyOn(useAuthStore.getState(), 'logout')
+    const postSpy = vi.spyOn(axios.Axios.prototype, 'post')
+
+    const errorHandler = getResponseErrorHandler()
+    const err401 = makeAxiosError(401)
+
+    await expect(errorHandler(err401)).rejects.toBeDefined()
+
+    expect(postSpy).not.toHaveBeenCalled()
+    expect(logoutSpy).not.toHaveBeenCalled()
+    expect(window.location.href).toBe('')
+  })
+
+  it('4.2 failed refresh while already on /login calls logout() without navigation', async () => {
+    // Authenticated session with a (now failing) refresh token
+    useAuthStore.setState({
+      accessToken: 'expired-access',
+      refreshToken: 'expired-refresh',
+    })
+
+    const logoutSpy = vi.spyOn(useAuthStore.getState(), 'logout')
+
+    // Simulate being on the login page
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: { href: '', pathname: '/login' },
+    })
+
+    // Force the refresh call to fail
+    const origPost = axios.Axios.prototype.post
+    axios.Axios.prototype.post = vi.fn().mockRejectedValue(new Error('Refresh failed'))
+
+    try {
+      const errorHandler = getResponseErrorHandler()
+      const err401 = makeAxiosError(401)
+      await errorHandler(err401)
+    } catch {
+      // expected rejection — refresh failed
+    } finally {
+      axios.Axios.prototype.post = origPost
+    }
+
+    // logout always runs…
+    expect(logoutSpy).toHaveBeenCalled()
+    // …but no hard navigation happens while already on /login
+    expect(window.location.href).toBe('')
   })
 })
 

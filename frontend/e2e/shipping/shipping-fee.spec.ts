@@ -9,7 +9,7 @@
  *   - /checkout (resumen)           → Subtotal $2.800 + Envío $500 + Total $3.300
  *
  * Backend mockeado (FastAPI) vía page.route:
- *   - GET  /api/v1/admin/configuracion  → umbral 3000, costo 500
+ *   - GET  /api/v1/admin/configuracion/  → umbral 3000, costo 500
  *   - POST /api/v1/pedidos/validar      → limpio (sin warnings)
  *   - POST /api/v1/pedidos              → { id: 100, total: 3300, envio: 500 }
  *   - POST /api/v1/pagos/crear-preferencia → preferencia TEST
@@ -63,7 +63,7 @@ async function seedCart(page: Page, items: unknown[]) {
 }
 
 async function mockConfiguracion(page: Page) {
-  await page.route('**/api/v1/admin/configuracion', (route) => {
+  await page.route('**/api/v1/admin/configuracion/', (route) => {
     route.fulfill({
       status: 200,
       contentType: 'application/json',

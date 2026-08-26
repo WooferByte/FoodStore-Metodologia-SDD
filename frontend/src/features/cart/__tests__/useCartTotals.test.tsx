@@ -9,11 +9,12 @@
  */
 
 import '@testing-library/jest-dom'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useCartTotals } from '@/features/cart/hooks'
-import { useCartStore } from '@/store'
+import { useCartStore, useAuthStore } from '@/store'
+import { apiClient } from '@/shared/api/axios'
 
 const CONFIG_KEY = 'system-config'
 
@@ -43,6 +44,16 @@ describe('useCartTotals', () => {
   beforeEach(() => {
     localStorage.clear()
     useCartStore.setState({ items: [] })
+    useAuthStore.setState({
+      accessToken: null,
+      refreshToken: null,
+      user: null,
+      isAuthenticated: false,
+    })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('subtotal $2.800 + umbral 3000/costo 500 → envío $500, total $3.300', async () => {
@@ -106,5 +117,56 @@ describe('useCartTotals', () => {
         missingForFree: 200,
       })
     })
+  })
+
+  it('4.4 anonymous user uses fallbacks without fetching config', async () => {
+    const queryClient = createTestQueryClient()
+    useCartStore.setState({
+      items: [{ productId: 'p1', name: 'Pizza', price: 2800, quantity: 1 }],
+    })
+    const getSpy = vi
+      .spyOn(apiClient, 'get')
+      .mockResolvedValue({ data: [] } as never)
+
+    const { result } = renderUseCartTotals(queryClient)
+    await waitFor(() => {
+      expect(result.current).toEqual({
+        subtotal: 2800,
+        deliveryFee: 500,
+        total: 3300,
+        isFreeDelivery: false,
+        missingForFree: 200,
+      })
+    })
+
+    // Auth-gated config (D-1): anonymous session must NOT hit the endpoint
+    expect(getSpy).not.toHaveBeenCalled()
+  })
+
+  it('authenticated user fetches config and uses server values for totals', async () => {
+    const queryClient = createTestQueryClient()
+    useCartStore.setState({
+      items: [{ productId: 'p1', name: 'Pizza', price: 2800, quantity: 1 }],
+    })
+    useAuthStore.setState({ isAuthenticated: true, accessToken: 'token' })
+    const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue({
+      data: [
+        { clave: 'envio_gratis_umbral', valor: '5000' },
+        { clave: 'envio_costo', valor: '800' },
+      ],
+    } as never)
+
+    const { result } = renderUseCartTotals(queryClient)
+    await waitFor(() => {
+      expect(result.current).toEqual({
+        subtotal: 2800,
+        deliveryFee: 800,
+        total: 3600,
+        isFreeDelivery: false,
+        missingForFree: 2200,
+      })
+    })
+
+    expect(getSpy).toHaveBeenCalled()
   })
 })
