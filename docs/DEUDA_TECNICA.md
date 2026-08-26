@@ -63,6 +63,7 @@
 
 **Estado**: PRE-EXISTENTE (verificado incluso con el código original, stash test) · **Fecha registro**: 2026-08-26
 **Impacto**: E2E del flujo de carrito no da señal. 1 failure por strict-mode (`getByText` matchea 2 nodos: el drawer + la página) y 1 por "Ver productos" (redirect a /login). Un 5º (item removal) es flaky por la misma causa.
+**Clasificación de urgencia (verificada 2026-08-26)**: **NO es incidente en vivo** — no existe CI configurado (`.github/workflows/` no existe) y no hay producción desplegada (`deploy-production` está pendiente en EPIC 15 de `docs/CHANGES.md`). Es deuda de repo → se ataca en el orden normal (después de §1).
 
 ### Causa raíz
 
@@ -84,28 +85,41 @@
 
 ---
 
-## 3. 🟠 Spec `system-configuration` dice "Non-admin gets 403" pero el backend permite a CUALQUIER usuario autenticado — **PENDIENTE DE DECISIÓN**
+## 3. 🟠 Spec `system-configuration` dice "Non-admin gets 403" pero el backend permite a CUALQUIER usuario autenticado — **DECISIÓN TOMADA (Opción A gradual)**
 
-**Estado**: Hallazgo pre-existente documentado 2026-08-26 · **Requiere decisión del usuario** (ver §9.1)
-**Impacto**: Un cliente autenticado puede leer la configuración del sistema (`GET /api/v1/admin/configuracion`): umbral de envío gratis, costo de envío, etc. No es dato sensible crítico, pero contradice el contrato de la spec y el principio de mínimo privilegio.
+**Estado**: Hallazgo pre-existente documentado 2026-08-26 · **Decisión del usuario registrada 2026-08-26: Opción A con plan gradual en 2 fases**
+**Impacto**: Un cliente autenticado puede leer la configuración del sistema (`GET /api/v1/admin/configuracion`): umbral de envío gratis (3000), costo de envío (500), productos por página, etc. Son **costos/umbrales → dato sensible** (información de negocio que no debería exponerse al cliente).
 
-### Evidencia
+### Evidencia verificada (2026-08-26)
 
-- Spec: `openspec/specs/system-configuration/spec.md` documenta "Non-admin gets 403".
-- Backend real: `GET /api/v1/admin/configuracion` responde 200 a cualquier usuario autenticado (verificado con sesión CLIENT en 2026-08-26).
-- El frontend ya gatea el consumo (fix `fix-refresh-loop-cartdrawer`): `useSystemConfig` con `enabled: isAuthenticated` — pero **no** por rol.
+- Spec `openspec/specs/system-configuration/spec.md` documenta "Non-admin gets 403".
+- `backend/configuracion/router.py:35` — el **GET** usa SOLO `Depends(get_current_user)` → responde 200 a cualquier autenticado (verificado con sesión CLIENT). El docstring del archivo (línea 7) dice "ADMIN only" pero la descripción del endpoint (línea 31) dice "Accessible to any authenticated user" → **contradicción interna en el propio archivo**.
+- `backend/configuracion/router.py:59` — el **PUT** SÍ tiene `Depends(require_role(["ADMIN"]))` → el update está protegido. Solo el GET está abierto.
+- `backend/tests/test_configuracion.py:180` — existe `test_get_configuracion_non_admin_forbidden` que espera 403 → **contradice el código actual** (el test es aspiracional o está entre los 41 fallidos de la deuda §1).
+- **El frontend cliente SÍ consume el endpoint** (no es solo admin):
+  - `frontend/src/features/cart/hooks/useCartTotals.ts:24-25` → `useSystemConfig('envio_gratis_umbral')` y `useSystemConfig('envio_costo')` (cálculo de envío en drawer/carrito/checkout del CLIENT).
+  - `frontend/src/pages/Catalog.tsx:77` → `useSystemConfig('productos_por_pagina')` (paginación del catálogo público).
+  - `frontend/src/features/configuracion/admin/hooks/useAdminConfiguraciones.ts` → tabla del panel admin.
+- Conclusión: la spec estaba mal desde el inicio (el GET fue deliberadamente "any authenticated"), pero la exposición de costos/umbrales al cliente es indeseable → **mover el cálculo al backend de todos modos**.
 
-### Pasos de resolución (una vez decidida la dirección)
+### 🔧 DECISIÓN (usuario, 2026-08-26): Opción A con plan gradual en 2 fases
 
-- **Opción A — endurecer backend (seguro, recomendado si la config es admin-only)**:
-  1. En `backend/admin/configuracion_router.py` (o donde esté el GET) agregar `Depends(require_role(["ADMIN"]))`.
-  2. Verificar que `useAdminConfiguraciones` y `useSystemConfig` del frontend siguen funcionando para admin.
-  3. **OJO**: `useCartTotals` usa `useSystemConfig` para calcular envío en el drawer/carrito del CLIENT — si el GET pasa a ser admin-only, hay que **mover el cálculo de envío al backend** (ya está en `create_pedido` vía `_get_config_int`) o exponer un endpoint público de config mínima. Riesgo de regresión alto → requiere E2E completo del carrito/cliente.
-- **Opción B — actualizar spec (rápido, si la config es legítimamente pública para autenticados)**:
-  1. Editar `openspec/specs/system-configuration/spec.md`: cambiar el requirement de "Non-admin gets 403" a "any authenticated user can read".
-  2. Regenerar delta + archivar como change de spec (`🔧` en `docs/CHANGES.md`).
+**FASE 1 — HOY (tapón de fuga, ~1 línea):**
+1. En `backend/configuracion/router.py`, el GET `list_configuraciones` → cambiar `_ : Usuario = Depends(get_current_user)` por `_ : None = Depends(require_role(["ADMIN"]))` (igual que el PUT).
+2. **NO romper el frontend cliente todavía**: documentar que el cliente debe dejar de usar `GET /api/v1/admin/configuracion`. Mientras no exista el endpoint alternativo, `useSystemConfig` con `enabled: isAuthenticated` devolverá `data: undefined` para no-admins → **los fallbacks actuales (umbral 3000 / costo 500) ya cubren el caso** (verificado en `useCartTotals`), pero **el catálogo perdería `productos_por_pagina` para CLIENT** → evaluar si eso es aceptable o si la paginación pasa a default 12.
+   - ⚠️ Riesgo: `Catalog.tsx` (página pública para anónimos Y clientes) perdería el fetch de `productos_por_pagina` si el GET pasa a admin-only. **Decisión de diseño requerida en la implementación**: default 12, o exponer esa clave específica en un endpoint público.
+3. Correr tests de `test_configuracion.py` → `test_get_configuracion_non_admin_forbidden` debería pasar ahora.
+4. Verificación E2E: flujo cliente (catálogo + carrito + checkout con fallbacks), flujo admin (tabla configuración funciona).
 
-**Archivos afectados**: backend router de configuración, `openspec/specs/system-configuration/spec.md`, `frontend/src/features/configuracion/hooks/useSystemConfig.ts`, `frontend/src/features/cart/hooks/useCartTotals.ts`.
+**FASE 2 — MAÑANA (siguiente sprint): mover el cálculo de envío al backend:**
+1. El cálculo ya existe en `backend/pedidos/service.py` (`create_pedido` usa `_get_config_int` con umbral 3000 / costo 500). El frontend cliente **deja de llamar** a `GET /api/v1/admin/configuracion` por completo.
+2. `useCartTotals` pasa a calcular envío con datos provistos por el backend o por un endpoint público mínimo (ej. `GET /api/v1/public/configuracion` exponiendo SOLO `envio_gratis_umbral`, `envio_costo`, `productos_por_pagina` — sin claves internas).
+3. Opcional: separar claves sensibles (admin-only) de claves públicas (whitelist en el endpoint público).
+4. Verificación: compra real E2E (como la #34 de 2026-08-26) con monto de envío correcto y sin exposición de config.
+
+**Archivos afectados (F1)**: `backend/configuracion/router.py`, `frontend/src/features/configuracion/hooks/useSystemConfig.ts`, `frontend/src/pages/Catalog.tsx`, `frontend/src/features/cart/hooks/useCartTotals.ts`.
+**Archivos afectados (F2)**: `backend/pedidos/service.py` (ya tiene el cálculo), `frontend/src/features/cart/hooks/useCartTotals.ts`, `frontend/src/features/configuracion/hooks/useSystemConfig.ts`, posible nuevo endpoint público.
+**Spec**: `openspec/specs/system-configuration/spec.md` (actualizar requirement a "ADMIN only" en F1).
 
 ---
 
@@ -211,32 +225,26 @@
 
 ---
 
-## 9. Decisiones pendientes del usuario
+## 9. Decisiones del usuario (registradas)
 
-### 9.1 — Acceso a `GET /api/v1/admin/configuracion` (ver §3)
+### 9.1 — Acceso a `GET /api/v1/admin/configuracion` — ✅ DECIDIDO 2026-08-26 (ver §3)
 
-**Pregunta**: ¿La configuración del sistema debe ser admin-only (endurecer backend) o es aceptable que cualquier usuario autenticado la lea (actualizar spec)?
+**Decisión**: **Opción A con plan gradual en 2 fases**:
+- **FASE 1 (hoy)**: cambiar el middleware del GET a admin-only (1 línea) + documentar que el cliente debe usar otro endpoint. Tapar la fuga YA.
+- **FASE 2 (mañana, próximo sprint)**: mover el cálculo de envío al backend por completo (ya existe en `create_pedido`), el frontend cliente deja de llamar al endpoint.
 
-**Contexto para decidir**:
-- Hoy: cualquier autenticado puede leerla (200).
-- Spec actual: dice 403 para no-admin (contradicción).
-- El frontend ya la usa para el cálculo de envío del cliente (`useCartTotals`), así que **si se endurece a admin-only, hay que mover el cálculo de envío al backend o exponer una config pública mínima** (riesgo de regresión medio-alto).
-- Dato de negocio expuesto: umbral envío gratis (3000), costo envío (500). No es crítico, pero es información interna.
+**Razonamiento del usuario (registrado)**: la config contiene costos/umbrales → sí es sensible. El frontend cliente la usa para calcular envíos → la spec estaba mal desde el inicio, pero igual mover el cálculo al backend por seguridad a futuro.
 
-**Opciones**:
-- **A** — Endurecer: config = admin-only; envío del cliente computado 100% en backend (ya existe en `create_pedido`); frontend cliente deja de llamar al endpoint. **Más trabajo, más seguro, alineado con la spec.**
-- **B** — Aceptar lectura autenticada: actualizar la spec y `docs/CHANGES.md`. **Cero código, pero deja la lectura abierta.**
+### 9.2 — Prioridad de resolución de deuda — ✅ DECIDIDO 2026-08-26
 
-### 9.2 — Prioridad de resolución de deuda
+**Decisión**: Orden sugerido por el orquestador **confirmado**:
+1. §1 (tests backend — red de seguridad)
+2. §2 (E2E cart-flows)
+3. §3 (config 403 — Fase 1 tapón, Fase 2 mover envío al backend)
+4. §4 + §5 (lints frontend + backend)
+5. §6-§8 (menores)
 
-**Pregunta**: ¿Qué orden preferís para atacar la deuda en próximas sesiones?
-
-**Sugerencia del orquestador**:
-1. §1 (tests backend) — devuelve la red de seguridad. **Es la más importante.**
-2. §2 (E2E cart-flows) — devuelve la señal de E2E.
-3. §3 (decisión config 403) — una vez decidida A o B.
-4. §4 + §5 (lint frontend + backend) — calidad.
-5. §6-§8 — menores.
+**Salvedad evaluada**: el usuario indicó que si el E2E cart-flows fallara "en producción" sería un incidente en vivo y debería ir primero. **Verificado 2026-08-26**: NO hay producción desplegada ni CI → no es incidente en vivo → se mantiene el orden normal (tests → E2E → §3 → lints → menores).
 
 ---
 
@@ -245,3 +253,4 @@
 | Fecha | Cambio |
 |-------|--------|
 | 2026-08-26 | Documento creado con deuda registrada 2026-08-25/26. Cambios del día: fix `fix-refresh-loop-cartdrawer` archivado, compra real #34 verificada, hallazgo §3 documentado |
+| 2026-08-26 | Decisiones del usuario registradas: §3 = Opción A gradual (F1 middleware admin-only hoy, F2 mover envío al backend mañana); §9.2 = orden de prioridad confirmado con salvedad resuelta (E2E no es incidente en vivo: sin CI ni producción). Evidencia verificada en router.py:35/59, test_configuracion.py:180, useCartTotals.ts:24-25, Catalog.tsx:77 |
